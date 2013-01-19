@@ -312,6 +312,64 @@ function sortBookmarkByTitle(id, bookmark, url) {
 		}
 }
 
+function sortBookmark(bookmark) {
+	createFolderByCategory(bookmark.url, undefined, function(result) {
+		createFolderByTitle(bookmark.url, result.id, function(result) {
+			//moveBookmark(...)
+		});
+	});
+}
+
+function createFolderByTitle(url, parentId, callback) {
+	alchemyTitleLookup(url, function(title) {
+		createFolder(title, parentId, callback);
+	});
+}
+
+function alchemyTitleLookup(url, callback) {
+		// Check local cache to see if the base URL has associated data.
+		var cachedData = jQueryStorageGetValue(url),
+			me = this;
+		
+		// Get the base url
+		var baseUrl = getBaseUrl(url);
+		
+		// If not, make an API request.
+		if(cachedData === null || cachedData.title === undefined)
+		{
+			this.alchemyTitle(baseUrl, function(data, textStatus, jqXHR) {
+
+				var title = data.title;
+				
+				var category = undefined;
+				// Category data may already exist
+				if(cachedData != null)
+					category = cachedData.category;
+				
+				// Check result
+				if (title !== null && title !== undefined) {		
+					// Cache the result in local storage
+					me.jQueryStorageSetValue(url, {title: title, category: category});
+				}
+				
+				// Invoke the callback
+				callback.call(me, title);
+			});
+		}
+		else 
+		{
+			// Cached title
+			var title = cachedData.title;
+			
+			// Invoke the callback
+			callback.call(me, title);
+
+		}
+}
+function createFolderByCategory(url, callback) {
+
+}
+
 /*
 	Create first folder in otherbookmarks, second folder in the first folder, and move a bookmark to the 2nd folder
 	If I had any good understanding of functional programming, all of the code in this file would be cleaner
@@ -425,11 +483,7 @@ Sort a sample of bookmarks
 */
 function sortSample()
 {
-	createAndMove("TestFolder3", "TestFolder4", 5);
-	createAndMove("TestFolder3", "TestFolder5", 5);
-	createAndMove("TestFolder6", "TestFolder7", 5);
-
-	//sortOtherBookmarks(SmartBookmarks.config.sampleNumber);
+	sortOtherBookmarks(SmartBookmarks.config.sampleNumber);
 }
 
 /* 
