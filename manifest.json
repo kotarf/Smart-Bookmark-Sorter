@@ -1,0 +1,22 @@
+{
+  "name": "Smart Bookmarks",
+  "version": "1.0",
+  "manifest_version": 2,
+  "description": "Automatically sort bookmarks based on their title, category and frequency of use",
+  "icons": { "128": "Bookmark-icon.png", "48" : "Bookmark-icon_48x48.png", "16" : "Bookmark-icon_16x16.png"  },
+  "browser_action": {
+    "default_icon": "Bookmark-icon_16x16.png",
+    "default_popup": "popup.html"
+  },
+  "background": {
+    "page": "bg.html"
+  },
+  "permissions": [
+	"bookmarks",
+	"history",
+	"storage",
+	"alarms",
+	"background",
+	"http://access.alchemyapi.com/"
+  ]
+}
