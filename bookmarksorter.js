@@ -21,7 +21,9 @@ BUG:
 2- extension must start up when the browser is opened (controllable with flag?)
 3- autosort flags must be in local storage
 4- manual sort AND auto sort should delete empty folders
-5- put all keys into a single object...
+5- change OnVisited to move the bookmark OUT OF ITS ROOT FOLDER and to OTHER BOOKMARKS ---or--- increment it if it is already there
+
+
 
 ***Bookmark Create can fail if the quota is reached
 callback.call(***THIS***, args) http://www.datejs.com/
@@ -311,12 +313,23 @@ function sortBookmarkByTitle(id, bookmark, url) {
 }
 
 /*
-	Create two folders (one inside other) and move a bookmark to the 2nd folder
+	Create first folder in otherbookmarks, second folder in the first folder, and move a bookmark to the 2nd folder
 	If I had any good understanding of functional programming, all of the code in this file would be cleaner
 */
-function createAndMove(folderA, folderB, id) {
-	
-
+function createAndMove(folderATitle, folderBTitle, bookmarkId) {
+	// Create the first folder if it doesn't exist
+	createFolder(folderATitle, undefined, function(result) {
+		var parentId = result.id;
+		// Create the second folder in the first folder if it doesn't exist
+		createFolder(folderBTitle, parentId, function(result) {
+			var destination = {
+				index : 0,
+				parentId : result.id
+			};
+			// Move the bookmark with the given id to the second folder
+			moveBookmark(bookmarkId, destination, function(){});
+		});
+	});
 }
 
 /*
@@ -324,16 +337,15 @@ function createAndMove(folderA, folderB, id) {
 */
 function createFolder(title, parentId, callback) {
 		var me = this;
-		var myBookmark = bookmark;
-		var myFolderName = foldername;
-		searchFolders(function(bookmark) {return bookmark !== undefined && bookmark.title == foldername && bookmark.url == undefined;}, function(ret) {
+		
+		searchFolders(function(bookmark) {return bookmark !== undefined && bookmark.title == title && bookmark.url == undefined;}, function(ret) {
 			if(ret.length > 0){
-				// Folder already exists - invoke the callback
-				callback.call(me, ret);
+				// Folder already exists - invoke the callback with the first result
+				callback.call(me, ret[0]);
 			}
 			else {
 				// Create the folder and move to it	
-				console.log("New folder: ", myFolderName);
+				//console.log("New folder: ", title);
 				var folder = {
 					title : title,
 					parentId : parentId
@@ -413,7 +425,11 @@ Sort a sample of bookmarks
 */
 function sortSample()
 {
-	sortOtherBookmarks(SmartBookmarks.config.sampleNumber);
+	createAndMove("TestFolder3", "TestFolder4", 5);
+	createAndMove("TestFolder3", "TestFolder5", 5);
+	createAndMove("TestFolder6", "TestFolder7", 5);
+
+	//sortOtherBookmarks(SmartBookmarks.config.sampleNumber);
 }
 
 /* 
@@ -761,9 +777,13 @@ function searchFolders(test, callback)
 /*
 Get other bookmarks folder
 */
-function getOtherBookmarks(callback)
-{
-
+function getOtherBookmarks(callback) {
+	// Get the ID of other bookmarks folder
+	var me = this;
+	getBookmarkChildren(SmartBookmarks.config.rootBookmarksKey.toString(), function(results) {
+		var otherBookmarks = results[SmartBookmarks.config.otherBookmarksKey];
+		callback.call(me, otherBookmarks);
+	});
 }
 
 /*
