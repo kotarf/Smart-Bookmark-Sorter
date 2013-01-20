@@ -11,52 +11,28 @@
 // You should have received a copy of the GNU General Public License
 // along with Smart Bookmark Sorter. If not, see <http://www.gnu.org/licenses/>.
 
-/*
-
-Can I change the callback's arguments, and store variables in the arguments...
-
-ToDo: 
-BUG: 
-1- autosort and extension must persist in the background. ***Keep Bookmarks library, make NEW FILE for background page that runs a script depending on the given params.***
-2- extension must start up when the browser is opened (controllable with flag?)
-3- autosort flags must be in local storage
-4- manual sort AND auto sort should delete empty folders
-5- change OnVisited to move the bookmark OUT OF ITS ROOT FOLDER and to OTHER BOOKMARKS ---or--- increment it if it is already there
-
-
-
-***Bookmark Create can fail if the quota is reached
-callback.call(***THIS***, args) http://www.datejs.com/
-Returning inside a callback will pass it up and return out of the original function
-onCreate should move the folder up.
-Duplicates should be found and combined.
-Empty folders should be deleted
-Accessing variables outside of a callback (asynchronous function) is bad...use a closure
-Alchemy requests may fail on URLs that are firewalled (proprietary) - do we fall back on the website title given by chrome?
-*/
-
+/** SmartBookmarkSorter configuration properties. These are all constants. */
 SmartBookmarkSorter = {
 	config : {
-		requestCategoryURL : "http://access.alchemyapi.com/calls/url/URLGetCategory",
-		requestTitleURL : "http://access.alchemyapi.com/calls/url/URLGetTitle",
-		requestTopicURL : "http://access.alchemyapi.com/calls/url/URLGetRankedConcepts",
-		apiStorageKey : "bookmarksort_apikey",
-		oldBookmarkDaysKey : "bookmarksort_oldarchive",
-		autoSortActiveKey : "bookmarksort_auto_on",
-		outputMode : "json",
-		autoSortMinutes : 1,
-		indexCounter : "bookmarkIndexCounter",
-		oldBookmarkDaysDefault : 30,
-		bookmarkAlarm : "bookmarkAlarm",
-		rootBookmarksKey : 0,
-		otherBookmarksKey : 1,
-		sampleNumber : 3,
-		autoSortCreateKey : "bookmarkauto_oncreate",
-		autoSortTimedKey : "bookmarkauto_timed",
-		autoSortPriorityKey : "bookmarkauto_priority"
+		requestCategoryURL : 		"http://access.alchemyapi.com/calls/url/URLGetCategory",
+		requestTitleURL : 			"http://access.alchemyapi.com/calls/url/URLGetTitle",
+		requestTopicURL : 			"http://access.alchemyapi.com/calls/url/URLGetRankedConcepts",
+		apiStorageKey : 			"bookmarksort_apikey",
+		oldBookmarkDaysKey : 		"bookmarksort_oldarchive",
+		autoSortActiveKey : 		"bookmarksort_auto_on",
+		outputMode : 				"json",
+		autoSortMinutes : 			1,
+		indexCounter : 				"bookmarkIndexCounter",
+		oldBookmarkDaysDefault : 	30,
+		bookmarkAlarm : 			"bookmarkAlarm",
+		rootBookmarksKey : 			0,
+		otherBookmarksKey : 		1,
+		sampleNumber : 				3,
+		autoSortCreateKey : 		"bookmarkauto_oncreate",
+		autoSortTimedKey : 			"bookmarkauto_timed",
+		autoSortPriorityKey : 		"bookmarkauto_priority"
 	},
 }
-attachCreateSort();
 
 /******* BOOKMARK SORTER *******/
 
@@ -188,6 +164,8 @@ function onVisitedListener(result)
  * Iterates through bookmarks on a timed interval, sorting older ones
  * @param {Alarm} alarm The alarm to attach.
  * @config {int} [oldBookmarkDays] Sort bookmarks that are older than this in days
+ * @config {int} [rootBookmarksKey] Index of root bookmarks
+ * @config {int} [otherBookmarksKey] Index of other bookmarks
  */
 function intervalAlarm(alarm)
 {
@@ -195,57 +173,56 @@ function intervalAlarm(alarm)
 	var me = this;
 	var counterKey = SmartBookmarkSorter.config.indexCounter;
 	var counterValue = jQueryStorageGetValue(counterKey) || 0;
-	console.log("interval alarm at counter = ", counterValue);
-	// Get the bookmark children in Other Bookmarks
-	getBookmarkChildren(SmartBookmarkSorter.config.otherBookmarks, function(results) {
-		// Get the bookmark at the current index
-		var bookmark = results[counterValue];
 		
-		if(bookmark !== undefined) {
+	// Get the ID of other bookmarks folder
+	getBookmarkChildren(SmartBookmarkSorter.config.rootBookmarksKey.toString(), function(results) {
+		var otherBookmarksId = results[SmartBookmarkSorter.config.otherBookmarksKey].id;
 
-			console.log("Found a bookmark by the name ", bookmark.title);
+		// Get the children of other Bookmarks
+		getBookmarkChildren(otherBookmarksId, function(results) {
+			// Get the bookmark at the current index
+			var bookmark = results[counterValue];
 			
-			// Check if the URL hasn't been visited in a while
-			var title = bookmark.title;
-			var url = bookmark.url;
-			var myId = bookmark.id;
-			var baseUrl = getBaseUrl(url);
+			if(bookmark !== undefined) {				
+				// Check if the URL hasn't been visited in a while
+				var title = bookmark.title;
+				var url = bookmark.url;
+				var myId = bookmark.id;
+				var baseUrl = getBaseUrl(url);
 
-			// Could be a folder
-			if(url !== undefined)
-			{
-				// Get visits for the url
-				chromeGetVisits(url, function(results) {
-					var oldBookmarkDays = getOldBookmarkDays();
-					if(results !== undefined) {
-						var visit = results[0];
-						if (visit !== undefined)
-						{
-							var visitTime = visit.visitTime;
-							var currentTime = new Date();
-							var daysBetween = me.daysBetween(visitTime, currentTime.getTime());
-						
-							if (daysBetween > oldBookmarkDays) {
-								// Sort the bookmark by category
+				// Could be a folder
+				if(url !== undefined)
+				{
+					// Get visits for the url
+					chromeGetVisits(url, function(results) {
+						var oldBookmarkDays = getOldBookmarkDays();
+						if(results !== undefined) {
+							var visit = results[0];
+							if (visit !== undefined)
+							{
+								var visitTime = visit.visitTime;
+								var currentTime = new Date();
+								var daysBetween = me.daysBetween(visitTime, currentTime.getTime());
+							
+								if (daysBetween > oldBookmarkDays) {
+									// Sort the bookmark by category
+									sortBookmark(bookmark);		
+								} 
+							} else {
+								// No history on this item... sort it anyway.
 								sortBookmark(bookmark);		
-							} 
-						} else {
-							// No history on this item... sort it anyway.
-							console.log("*****ALERT***** NO VISIT RESULTS...?");
-							sortBookmark(bookmark);		
-						}
-					} 
-				});
-			}
-		}
-			
-		// Otherwise, do nothing.
-	
-		// Set the counter to the next index, or 0 if it is the tail
-		var incCounter = counterValue < results.length ? counterValue + 1 : 0;
-		console.log("Setting the counter from ", counterValue, " to ", incCounter );
+							}
+						} 
+					});
+				}
+			}	
+			// Otherwise, do nothing.
+		
+			// Set the counter to the next index, or 0 if it is the tail
+			var incCounter = counterValue < results.length ? counterValue + 1 : 0;
 
-		jQueryStorageSetValue(counterKey, incCounter);
+			jQueryStorageSetValue(counterKey, incCounter);
+		});
 	});
 }
 
@@ -417,10 +394,6 @@ function createFolder(title, parentId, callback) {
 		});
 }
 
-
-/*
-Sort a sample of bookmarks
-*/
 /**
  * Sort a sample of bookmarks
  * @config {int} [sampleNumber] The number of bookmarks to sort in this sample
@@ -430,9 +403,12 @@ function sortSample()
 	sortOtherBookmarks(SmartBookmarkSorter.config.sampleNumber);
 }
 
-/* 
-Manually sort the other bookmarks folder
-*/
+/**
+ * Manually sort the other bookmarks folder
+ * @param {int} num The number of bookmarks to sort. If left undefined, sorts all bookmarks.
+ * @config {int} [rootBookmarksKey] The index of root bookmarks
+ * @config {int} [otherBookmarksKey] The index of other bookmarks
+ */
 function sortOtherBookmarks(num)
 {
 	// Get the ID of other bookmarks folder
@@ -442,12 +418,13 @@ function sortOtherBookmarks(num)
 	});
 }
 
-/*
-Manually sorts specified amount of bookmarks. If left undefined, sorts all bookmarks
-Be sure to go into subfolders
-
-NOTE: this code is broken..it doesn't count how many bookmarks it has sorted when it recurses into folders.
-*/
+/**
+ * Manually sorts specified amount of bookmarks. If left undefined, sorts all bookmarks
+ * NOTE: this code is broken..it doesn't count how many bookmarks it has sorted when it recurses into folders.
+ * @param {string} rootId The rootId of the folder to sort.
+ * @param {int} num The number of bookmarks to sort. If left undefined, sorts all bookmarks.
+ * @config {int} [oldBookmarkDays] Sort bookmarks that are older than this in days
+ */
 function sortBookmarks(rootId, num)
 {
 	var me = this;
@@ -504,94 +481,111 @@ function sortBookmarks(rootId, num)
 	});
 }
 
-
-/*
-* Set the API key in local storage
-*/
+/**
+ * Sets the api key in local storage
+ * @param {string} apikey The apikey to set
+ * @config {string} [bookmarksort_apikey] Local storage key for api key
+ */
 function setApiKey(apikey) 
 {
 	jQueryStorageSetValue(SmartBookmarkSorter.config.bookmarksort_apikey, apikey);
 }
 
-/*
-* Get the API key in local storage
-*/
+/**
+ * Gets the api key in local storage
+ * @config {string} [bookmarksort_apikey] Local storage key for api key
+ * @returns {string}
+ */
 function getApiKey()
 {
 	return jQueryStorageGetValue(SmartBookmarkSorter.config.bookmarksort_apikey);
 }
 
-/*
-Set auto on create
-*/
+/**
+ * Sets auto create on
+ * @param {bool} value The boolean to set
+ * @config {string} [autoSortCreateKey] Local storage key auto create on
+ */
 function setAutoOnCreate(value)
 {
 	jQueryStorageSetValue(SmartBookmarkSorter.config.autoSortCreateKey, value);
 }
 
-/*
-* Get the auto onCreate value
-*/
+/**
+ * Gets the api key in local storage
+ * @config {string} [bookmarksort_apikey] Local storage key for api key
+ * @returns {bool}
+ */
 function getAutoOnCreate()
 {
 	return jQueryStorageGetValue(SmartBookmarkSorter.config.autoSortCreateKey);
 }
 
-/*
-Set auto timed key
-*/
+/**
+ * Sets the auto interval  in local storage
+ * @config {string} [autoTimedKey] Local storage key for timed sort
+ * @param {bool} value The boolean to set
+ */
 function setAutoInterval(value)
 {
 	jQueryStorageSetValue(SmartBookmarkSorter.config.autoTimedKey, value);
 }
 
-/*
-* Get the auto interval key
-*/
+/**
+ * Get the auto interval in local storage
+ * @config {string} [autoTimedKey] Local storage key for timed sort
+ * @returns {bool}
+ */
 function getAutoInterval()
 {
 	return jQueryStorageGetValue(SmartBookmarkSorter.config.autoTimedKey);
 }
 
-/*
-Set auto prioritize
-*/
+/**
+ * Sets the auto prioritize  in local storage
+ * @config {string} [autoSortPriorityKey] Local storage key for priority sort
+ * @param {bool} value The boolean to set
+ */
 function setAutoPrioritize(value)
 {
 	jQueryStorageSetValue(SmartBookmarkSorter.config.autoSortPriorityKey, value);
 }
 
-/*
-* Get the auto prioritize value
-*/
+/**
+ * Get the auto interval in local storage
+ * @config {string} [autoSortPriorityKey] Local storage key for priority sort
+ * @returns {bool}
+ */
 function getAutoPrioritize()
 {
 	return jQueryStorageGetValue(SmartBookmarkSorter.config.autoSortPriorityKey);
 }
 
-/*
-* Set old bookmark days for determining whether or not to archive
-*/
+/**
+ * Set the old bookmark days in local storage
+ * @config {string} [oldBookmarkDaysKey] Local storage key for old bookmark days
+ * @param {int} value The int to set
+ */
 function setOldBookmarkDays(value)
 {
 	jQueryStorageSetValue(SmartBookmarkSorter.config.oldBookmarkDaysKey, value);
 }
 
-/*
-* Get old bookmark days for determining whether or not to archive
-*/
+/**
+ * Get the old bookmark days in local storage
+ * @config {string} [autoSortPriorityKey] Local storage key for old bookmark days
+ * @returns {int}
+ */
 function getOldBookmarkDays()
 {
 	return jQueryStorageGetValue(SmartBookmarkSorter.config.oldBookmarkDaysKey) || SmartBookmarkSorter.config.oldBookmarkDaysDefault;
 }
-/*
-Distributes a given number of sort operations over 24 hours in milliseconds
-*/
-function distributeUnits(operations, time)
-{
-	return 1000 * 1 / Math.floor(operations / (60 * 60));
-}
 
+/**
+ * Get the base url of a qualified URL
+ * @param {string} url The qualified url to slice
+ * @returns {string}
+ */
 function getBaseUrl(url)
 {
 	pathArray = String(url).split( '/' ); 
@@ -599,37 +593,58 @@ function getBaseUrl(url)
 	return host;
 }
 
-// Courtesy of Michael Liu at http://stackoverflow.com/questions/542938/how-do-i-get-the-number-of-days-between-two-dates-in-jquery
+/**
+ * Get the UTC date 
+ * Courtesy of Michael Liu at http://stackoverflow.com/questions/542938/how-do-i-get-the-number-of-days-between-two-dates-in-jquery
+ * @param {date} date The date to treat as UTC
+ * @returns {int}
+ */
 function treatAsUTC(date) {
     var result = new Date(date);
     result.setMinutes(result.getMinutes() - result.getTimezoneOffset());
     return result;
 }
 
+/**
+ * Get the days between two UTC dates
+ * Courtesy of Michael Liu at http://stackoverflow.com/questions/542938/how-do-i-get-the-number-of-days-between-two-dates-in-jquery
+ * @param {date} date The start date to treat as UTC, the end date to treat as UTC
+ * @returns {int}
+ */
 function daysBetween(startDate, endDate) {
     var millisecondsPerDay = 24 * 60 * 60 * 1000;
     return (treatAsUTC(endDate) - treatAsUTC(startDate)) / millisecondsPerDay;
 }
 
 /******* JQUERY *******/
-/*
-/*Make a JQuery REST request with the given parameters with the given callback*/
+
+/**
+ * Make a REST request with JQuery. Wraps around JQuery
+ * @param {string} requestURL The endpoint request URL
+ * @param {object} data The data to send
+ * @param {function} callback The callback to run after request completes
+ * @param {string} dataType The data type to return back
+ */
 function jqueryREST(requestURL, data, callback, dataType)
 {
 	jQuery.get(requestURL, data, callback, dataType);
 }
 
-/*
-/*Make a JQuery local store query
-*/
+/**
+ * Get value from local storage using JQuery plugin totalStorage.
+ * @param {string} key The key to look in
+ * @returns {?} The value at the given key
+ */
 function jQueryStorageGetValue(key)
 {
 	return $.totalStorage(key);
 }
 
-/*
-/* Set a local storage value
-*/
+/**
+ * Set value in local storage using JQuery plugin totalStorage.
+ * @param {string} key The key to set at
+ * @param {string} value The value to set
+ */
 function jQueryStorageSetValue(key, value)
 {
 	$.totalStorage(key, value);
@@ -703,28 +718,6 @@ function alchemyTitle(url, callback)
 	
 }
 
-/*
-Make an Alchemy API Topic REST request
-*/
-function alchemyTopic(url, callback)
-{
-	// Get the api key from local storage
-	var apikey = getApiKey();
-
-	//Create a local data object for the API request 
-	var data = { 
-		url : url,
-		apikey : apikey,
-		outputMode : this.SmartBookmarkSorter.config.outputMode
-	};
-	
-	var dataType = "json";
-	var requestURL = this.SmartBookmarkSorter.config.requestTopicURL;
-	
-	//API request for getting the category of a URL
-	this.jqueryREST(requestURL, data, callback, dataType);
-	
-}
 
 /******* FUNCTIONAL *******/
 var Break = {toString: function() {return "Break";}};
