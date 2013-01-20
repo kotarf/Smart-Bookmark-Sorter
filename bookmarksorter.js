@@ -319,12 +319,12 @@ function alchemyCategoryLookup(url, callback)
  * @param {function} callback The callback to run after the REST request completes.
  */
 function alchemyTitleLookup(url, callback) {
-		// Check local cache to see if the base URL has associated data.
-		var cachedData = jQueryStorageGetValue(url),
-			me = this;
-		
 		// Get the base url
 		var baseUrl = getBaseUrl(url);
+		
+		// Check local cache to see if the base URL has associated data.
+		var cachedData = jQueryStorageGetValue(baseUrl),
+			me = this;
 		
 		// If not, make an API request.
 		if(cachedData === null || cachedData.title === undefined)
@@ -341,7 +341,7 @@ function alchemyTitleLookup(url, callback) {
 				// Check result
 				if (title !== null && title !== undefined) {		
 					// Cache the result in local storage
-					me.jQueryStorageSetValue(url, {title: title, category: category});
+					me.jQueryStorageSetValue(baseUrl, {title: title, category: category});
 				}
 				
 				// Invoke the callback
@@ -651,9 +651,19 @@ function jQueryStorageSetValue(key, value)
 }
 
 /******* ALCHEMY API *******/
-/*
-Make an Alchemy API key test that runs callbackA if the key is valid, and runs callbackB if the key is not valid. Assumes google.com is operational :)
-*/
+
+/**
+ * Make an Alchemy API key test that runs callbackA if the key is valid, and runs callbackB if the key is not valid. Assumes google.com is operational :)
+ * This code is particularly bad and needs to be replaced with using the regular functions below
+ * @param {string} apiKey The apikey to make the request with
+ * @param {function} callbackA The function to run if the test succeeds
+ * @param {function} callbackB The function to run if the test fails
+ * @param {array} argsA The arguments to the first callback
+ * @param {array} argsB The arguments to the second callback
+ * @param {object} scope The scope of the object to run the callbacks in
+ * @config {string} [outputMode] Output mode for the request (like json)
+ * @config {string} [requestCategoryURL] Endpoint for Alchemy category requests
+ */
 function alchemyKeyTest(apiKey, callbackA, callbackB, argsA, argsB, scope)
 {
 	//Create a local data object for the API request 
@@ -673,9 +683,13 @@ function alchemyKeyTest(apiKey, callbackA, callbackB, argsA, argsB, scope)
 	this.jqueryREST(requestURL, data, apiCallback, dataType);
 }
 
-/*
-Make an Alchemy API Text Extraction REST request
-*/
+/**
+ * Make an Alchemy API categorization request that runs the callback when complete
+ * @param {string} url The url to categorize
+ * @param {function} callback The function to run with the result
+ * @config {string} [outputMode] Output mode for the request (like json)
+ * @config {string} [requestCategoryURL] Endpoint for Alchemy category requests
+ */
 function alchemyCategory(url, callback)
 {
 	// Get the api key from local storage
@@ -695,9 +709,13 @@ function alchemyCategory(url, callback)
 	this.jqueryREST(requestURL, data, callback, dataType);
 }
 
-/*
-Make an Alchemy API Title REST request
-*/
+/**
+ * Make an Alchemy API title request that runs the callback when complete
+ * @param {string} url The url to extract title 
+ * @param {function} callback The function to run with the result
+ * @config {string} [outputMode] Output mode for the request (like json)
+ * @config {string} [requestTitleURL] Endpoint for Alchemy category requests
+ */
 function alchemyTitle(url, callback)
 {
 	// Get the api key from local storage
@@ -722,6 +740,13 @@ function alchemyTitle(url, callback)
 /******* FUNCTIONAL *******/
 var Break = {toString: function() {return "Break";}};
 
+/**
+ * Need to refactor this
+ * Foreach with given callback and a way to break out
+ * @param {array} array The array to foreach 
+ * @param {function} action The function to run on each element
+ * @config {function} [Break] Break function
+ */
 function forEach(array, action) {
   try {
     for (var i = 0; i < array.length; i++)
@@ -734,11 +759,13 @@ function forEach(array, action) {
 }
 
 /******* CHROME CONTROL *******/
-/*
-Recurses through the bookmark tree looking for bookmarks that pass the test.
 
-Needed because chrome.bookmarks.search() does not include folders in the result.
-*/
+/**
+ * Recurses through the bookmark tree looking for bookmarks that pass the test.
+ * Needed because chrome.bookmarks.search() does not include folders in the result.
+ * @param {function} test The function to test on a BookmarkTreeNode element 
+ * @param {function} callback The callback to run with the results
+ */
 function searchFolders(test, callback)
 {
 	var me = this;
@@ -765,9 +792,12 @@ function searchFolders(test, callback)
 	});
 }
 
-/*
-Get other bookmarks folder
-*/
+/**
+ * Get other bookmarks folder
+ * @param {function} callback The callback to run with the other bookmarks folder
+ * @config {function} [rootBookmarksKey] key for root bookmarks index in local storage
+ * @config {function} [otherBookmarksKey] key for otherbookmarks index in local storage
+ */
 function getOtherBookmarks(callback) {
 	// Get the ID of other bookmarks folder
 	var me = this;
@@ -777,36 +807,32 @@ function getOtherBookmarks(callback) {
 	});
 }
 
-/*
-Search bookmarks with query
-
-Does not return folders
-*/
+/**
+ * Search bookmarks with query
+ * Does not return folders
+ * @param {string} query The callback to run with the other bookmarks folder
+ * @param {function} callback The callback to run with the results of the search
+ */
 function searchBookmarks(query, callback)
 {
 	return chrome.bookmarks.search(query, callback)
 }
 
-/*
-Get a bookmark
-*/
-function getBookmark(id, callback)
-{
-	return chrome.bookmarks.get(id, callback);
-}
-
-/*
-Get all bookmarks at id
-*/
+/**
+ * Get all children bookmarks at id
+ * @param {string} id The id of parent
+ * @param {function} callback The callback to run with the child bookmarks
+ */
 function getBookmarkChildren(id, callback)
 {
 	chrome.bookmarks.getChildren(id, callback);
 }
 
-/*
-Removes all folders with the given name
-Particularly useful in testing and damage control.
-*/
+/**
+ * Removes all folders with the given name. Particularly useful in testing and damage control.
+ * @param {string} name The name of the folder(s) to remove
+ * @ignore
+ */
 function removeBookmarks(name)
 {
 	searchFolders(function(bookmark){return bookmark != undefined && bookmark.title == name; }, function(ret) {
@@ -816,74 +842,90 @@ function removeBookmarks(name)
 	});
 }
 
-/*
-Moves a bookmark
-*/
+/**
+ * Get all children bookmarks at id
+ * @param {string} id The id of parent
+ * @param {object} destination The destination to move to (chrome api specified)
+ * @param {function} callback The callback to run after moving the bookmark
+ */
 function moveBookmark(id, destination, callback) 
 {
 	chrome.bookmarks.move(id, destination, callback);
 }
 
-/*
-Create a folder
-*/
+/**
+ * Create a bookmark or folder
+ * @param {object} bookmark The bookmark to create
+ * @param {function} callback The callback to run after creating the bookmark
+ */
 function createBookmark(bookmark, callback)
 {
 	chrome.bookmarks.create(bookmark, callback);
 }
 
-/*
-Attach bookmark create event
-*/
+/**
+ * Attach bookmark create event
+ * @param {function} callback The listener to attach
+ */
 function chromeBookmarkOnCreated(callback)
 {
 	chrome.bookmarks.onCreated.addListener(callback);
 }
 
-/*
-Detach bookmark create visted event
-*/
+/**
+ * Detach bookmark create event
+ * @param {function} callback The listener to detach
+ */
 function chromeBookmarksDetachCreated(callback)
 {
 	chrome.bookmarks.onCreated.removeListener(callback);
 }
 
-/*
-Attach history on visted event
-*/
+/**
+ * Attach on visited event
+ * @param {function} callback The listener to attach
+ */
 function chromeHistoryOnVisited(callback)
 {
 	chrome.history.onVisited.addListener(callback);
 }
 
-/*
-Detach history on visted event
-*/
+/**
+ * Detach on visited event
+ * @param {function} callback The listener to detach
+ */
 function chromeHistoryDetachVisited(callback)
 {
 	chrome.history.onVisited.removeListener(callback);
 }
 
-/* 
-Detach alarm
-*/
-function chromeAlarmsDetach(name)
-{
-	chrome.alarms.clear(name);
-}
-/*
-Get visits about a url
-*/
-function chromeGetVisits(url, callback)
-{
-	chrome.history.getVisits({url: url}, callback);
-}
-
-/*
-Create alarm function
-*/
+/**
+ * Attach on an alarm
+ * @param {string} name The name of the alarm
+ * @param {function} callback The listener to attach
+ * @param {double} interval The interval to attach in minutes
+ */
 function chromeDeployAlarm(name, callback, interval)
 {
     chrome.alarms.create(name, {periodInMinutes : interval});
 	chrome.alarms.onAlarm.addListener(callback);
+}
+
+/**
+ * Detach an alarm by name
+ * @param {string} name The name of the alarm listener to detach
+ */
+function chromeAlarmsDetach(name)
+{
+	chrome.alarms.clear(name);
+}
+
+/**
+ * Get visit information by URL
+ * @param {string} url The url to search history for
+ * @param {function} callback The callback to run with visit results
+ */
+function chromeGetVisits(url, callback)
+{
+	chrome.history.getVisits({url: url}, callback);
 }
