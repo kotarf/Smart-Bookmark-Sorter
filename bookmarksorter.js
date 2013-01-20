@@ -116,45 +116,28 @@ function onVisitedListener(result)
 {
 	var url = result.url;
 	// Get the base url
-	var baseUrl = getBaseUrl(url);
 
 	// Check if a matching bookmark exists
-	searchBookmarks(baseUrl, function(results) {
+	searchBookmarks(url, function(results) {
 		var result = results[0];
 
 		// Matching bookmark to url exists
 		if(result !==  undefined)
 		{
-			var parentId = result.parentId;	
-	
-			// If a matching bookmark exists, move itself and its parent up one unit
-			getBookmark(parentId, function(results){
-				var parentBookmark = results[0];
+			var id = result.id;	
+			var parentId = result.parentId;
+
+			// Move it to the top of other bookmarks
+			getOtherBookmarks(function(result) {
+
+				var otherBookmarksId = result.id;
+									
+				var destination = {
+					parentId : otherBookmarksId,
+					index : 0
+				};
 				
-				if(parentBookmark !== undefined)
-				{
-					console.log(parentBookmark);
-					var parentIndex = parentBookmark.index;
-					var childIndex = result.index;
-					
-					// take care not to move anything outside of "Other bookmarks"
-					if(parentBookmark.parentId === SmartBookmarks.config.otherBookmarks) {
-						var newParentIndex = parentIndex > 0 ? parentIndex - 1 : 0;
-						var newChildIndex = childIndex > 0 ? childIndex - 1 : 0;
-						var parentDestination = {
-							parentId : parentBookmark.parentId,
-							index : newParentIndex
-						};
-						var childDestination = {
-							parentId : parentBookmark.id,
-							index : newChildIndex
-						};
-						// Move the parent up one unit
-						moveBookmark(parentBookmark.id, parentDestination, function(result){});
-						// Move the child up one unit
-						moveBookmark(result.id, childDestination, function(result){});
-					}
-				}
+				moveBookmark(id, destination, function() {});
 			});
 		}
 		// Otherwise, do nothing.
@@ -199,23 +182,14 @@ function intervalAlarm(alarm)
 						
 							if (daysBetween > oldBookmarkDays) {
 								// Sort the bookmark by category
-								sortBookmarkByCategory(myId, bookmark, url);		
-							} else {
-								// Sort the bookmark by title
-								console.log("by title");
-								sortBookmarkByTitle(myId, bookmark, url);
-							}
+								sortBookmark(bookmark);		
+							} 
 						} else {
-							// No history on this item... sort it by category.
+							// No history on this item... sort it anyway.
 							console.log("*****ALERT***** NO VISIT RESULTS...?");
-
-							sortBookmarkByCategory(myId, bookmark, url);		
+							sortBookmark(bookmark);		
 						}
-					} else {
-						// No history on this item...sort it by category
-							console.log("*****ALERT***** NO VISIT RESULTS");
-							sortBookmarkByCategory(myId, bookmark, url);		
-					}
+					} 
 				});
 			}
 		}
@@ -230,92 +204,16 @@ function intervalAlarm(alarm)
 	});
 }
 
-function sortBookmarkByCategory(id, bookmark, url) {
-	var cachedData = jQueryStorageGetValue(url),
-		me = this;
-	
-	// Check if there is cached data
-	if(cachedData === null || cachedData.title === undefined) {
-		// If not, make an API request.
-		alchemyCategory(url, function(data, textStatus, jqXHR) {
-
-			var category = data.category;
-			var title = undefined;
-
-			// Title data may already exist
-			if(cachedData != null)
-				title = cachedData.title;
-						
-			// Check result
-			if (category !== null && category !== undefined) {
-		
-				// Cache the result in local storage
-				jQueryStorageSetValue(url, {title: title, category: category});
-								
-				/* Search for a folder matching the result, create the folder if necessary, and move the bookmark to it */
-				searchAndCreate(id, bookmark, category);
-			}
-		});
-	} else {
-		// Cached category
-		var category = cachedData.category;
-		
-		// Search for a folder matching the result, create the folder if necessary, and move the bookmark to it
-		me.searchAndCreate(id, bookmark, category);	
-	}
-}
-
-function sortBookmarkByTitle(id, bookmark, url) {
-		// Check local cache to see if the base URL has associated data.
-		var cachedData = jQueryStorageGetValue(url),
-			me = this;
-		
-		// Get the base url
-		var baseUrl = getBaseUrl(url);
-		console.log("ID = ", id, "BOOKMARK=", bookmark);
-		// If not, make an API request.
-		if(cachedData === null || cachedData.title === undefined)
-		{
-			this.alchemyTitle(baseUrl, function(data, textStatus, jqXHR) {
-
-				var title = data.title;
-				
-				var category = undefined;
-				// Category data may already exist
-				if(cachedData != null)
-					category = cachedData.category;
-				
-				// Check result
-				if (title !== null && title !== undefined) {
-					
-					// Cache the result in local storage
-					me.jQueryStorageSetValue(url, {title: title, category: category});
-								console.log("TITLE=", title);
-
-					// Search for a folder matching the result, create the folder if necessary, and move the bookmark to it
-					searchAndCreate(id, bookmark, title);
-				}
-				else {
-					console.log("FAIL=", data);
-
-				}
-			});
-		}
-		else 
-		{
-			// Cached title
-			var title = cachedData.title;
-			console.log("TITLEcach=", title);
-
-			// Search for a folder matching the result, create the folder if necessary, and move the bookmark to it
-			me.searchAndCreate(id, bookmark, title);
-		}
-}
-
 function sortBookmark(bookmark) {
 	createFolderByCategory(bookmark.url, undefined, function(result) {
 		createFolderByTitle(bookmark.url, result.id, function(result) {
-			//moveBookmark(...)
+			var destination = {
+				index : 0,
+				parentId : result.id
+			};
+			
+			// Move the bookmark to that folder
+			moveBookmark(bookmark.id, destination, function(result){});
 		});
 	});
 }
@@ -366,32 +264,53 @@ function alchemyTitleLookup(url, callback) {
 
 		}
 }
-function createFolderByCategory(url, callback) {
 
-}
-
-/*
-	Create first folder in otherbookmarks, second folder in the first folder, and move a bookmark to the 2nd folder
-	If I had any good understanding of functional programming, all of the code in this file would be cleaner
-*/
-function createAndMove(folderATitle, folderBTitle, bookmarkId) {
-	// Create the first folder if it doesn't exist
-	createFolder(folderATitle, undefined, function(result) {
-		var parentId = result.id;
-		// Create the second folder in the first folder if it doesn't exist
-		createFolder(folderBTitle, parentId, function(result) {
-			var destination = {
-				index : 0,
-				parentId : result.id
-			};
-			// Move the bookmark with the given id to the second folder
-			moveBookmark(bookmarkId, destination, function(){});
-		});
+function createFolderByCategory(url, parentId, callback) 
+{
+	alchemyCategoryLookup(url, function(category) {
+		createFolder(category, parentId, callback);
 	});
 }
 
+function alchemyCategoryLookup(url, callback) 
+{
+	var cachedData = jQueryStorageGetValue(url),
+		me = this;
+	
+	// Check if there is cached data
+	if(cachedData === null || cachedData.title === undefined) {
+		// If not, make an API request.
+		alchemyCategory(url, function(data, textStatus, jqXHR) {
+
+			var category = data.category;
+			var title = undefined;
+
+			// Title data may already exist
+			if(cachedData != null)
+				title = cachedData.title;
+						
+			// Check result
+			if (category !== null && category !== undefined) {
+		
+				// Cache the result in local storage
+				jQueryStorageSetValue(url, {title: title, category: category});
+								
+				// Invoke the callback
+				callback.call(me, category);
+			}
+		});
+	} else {
+		// Cached category
+		var category = cachedData.category;
+		
+		// Invoke the callback
+		callback.call(me, category);
+	}
+
+}
+
 /*
-	Create folder with specified parentID with name, callback
+	Create folder (if it does not exist) with specified parentID with name, callback
 */
 function createFolder(title, parentId, callback) {
 		var me = this;
@@ -422,61 +341,6 @@ function createFolder(title, parentId, callback) {
 		});
 }
 
-function searchAndCreate(id, bookmark, foldername){
-		var me = this;
-		var myId = id;
-		var myBookmark = bookmark;
-		var myFolderName = foldername;
-		searchFolders(function(bookmark) {return bookmark !== undefined && bookmark.title == foldername && bookmark.url == undefined;}, function(ret) {
-			if(ret.length > 0){
-				// Move to the existing folder
-				//console.log("Search returned : ",ret);
-				var target = ret[0];
-				
-				if(target != undefined){
-					var destination = {
-						index : 0,
-						parentId : target.id
-					};
-					moveBookmark(myId, destination, function(result){
-						console.log("SUCCESSFUL MOVE ",result);					
-					});
-				}
-			}
-			else {
-				// Create the folder and move to it	
-				console.log("New folder: ", myFolderName);
-				var folder = {
-					title : myFolderName,
-				};
-	
-				// Disable the bookmark onCreate listener, because programmatic creation of bookmarks/folders will kick off the event
-				me.chromeBookmarksDetachCreated(onCreatedListener);
-				// Create the folder
-				me.createBookmark(folder, function(result) {
-					
-					// Create may fail if the hourly quota is reached
-					if(result !== undefined) {
-						// Move to the new folder
-						var destination = {
-							index : 0,
-							parentId : result.id
-						};
-						
-						// Move the url to that folder
-						moveBookmark(myId, destination, function(result){
-							console.log("SUCCESSFUL MOVE ",result);
-						});
-					}
-					else {
-						console.log("CREATE FAILED..");
-					}
-				});
-				// Enable the bookmark onCreate listener
-				me.chromeBookmarkOnCreated(me.onCreatedListener);
-			}
-		});
-}
 
 /*
 Sort a sample of bookmarks
@@ -537,22 +401,22 @@ function sortBookmarks(rootId, num)
 									var daysBetween = me.daysBetween(visitTime, currentTime.getTime());
 								
 									if (daysBetween > oldBookmarkDays) {
-										// Sort the bookmark by category
-										sortBookmarkByCategory(myId, bookmark, url);		
+										// Sort the bookmark
+										sortBookmark(bookmark);
 									} else {
-										// Sort the bookmark by title
-										sortBookmarkByTitle(myId, bookmark, url);
+										// Move the bookmark to the top
+										//
 									}
 								} else {
-									// No history on this item... sort it by category.
-									sortBookmarkByCategory(myId, bookmark, url);		
+									// No history on this item... sort it anyways.
+									sortBookmark(bookmark);
 								}
 							} 
 							
 						});	
 					} else {
 						// Recurse into the folder
-						//sortBookmarks(myId, numSorts - i);
+						sortBookmarks(myId, numSorts);
 					}
 				}
 			})(bookmark)
