@@ -43,7 +43,7 @@ window.SmartBookmarkSorter = {
 	 */
 	attachCreateSort : function () {
 		/* When a bookmark is created, it will be moved to an appropriate Title folder." */
-		this.chromeBookmarkOnCreated(onCreatedListener);
+		this.chromeBookmarkOnCreated(this.onCreatedListener);
 	},
 
 	/**
@@ -52,7 +52,7 @@ window.SmartBookmarkSorter = {
 	 */
 	attachIntervalSort : function () {
 		/* On a timed interval, older bookmarks will be archived to a Category folder and loose bookmarks will be sorted. */
-		this.chromeDeployAlarm(SmartBookmarkSorter.config.bookmarkAlarm, intervalAlarm, SmartBookmarkSorter.config.autoSortMinutes); 
+		this.chromeDeployAlarm(this.config.bookmarkAlarm, this.intervalAlarm, this.config.autoSortMinutes); 
 	},
 
 	/**
@@ -68,14 +68,14 @@ window.SmartBookmarkSorter = {
 	 * Detaches the automatic create sort
 	 */
 	detachCreateSort : function () {
-		this.chromeBookmarksDetachCreated(onCreatedListener);
+		this.chromeBookmarksDetachCreated(this.onCreatedListener);
 	},
 
 	/**
 	 * Detaches the automatic interval sort
 	*/
 	detachIntervalSort : function () {
-		this.chromeAlarmsDetach(SmartBookmarkSorter.config.bookmarkAlarm);
+		this.chromeAlarmsDetach(this.config.bookmarkAlarm);
 	},
 
 	/**
@@ -90,16 +90,17 @@ window.SmartBookmarkSorter = {
 	 * Checks local storage configuration values to determine which sorts to enable
 	*/
 	enableAutomaticSort : function () {
-		var isOnCreate = getAutoOnCreate();
-		var isOnInterval = getAutoInterval();
-		var isPrioritize = getAutoPrioritize();
+		var me = this,
+			isOnCreate = me.getAutoOnCreate(),
+			isOnInterval = me.getAutoInterval(),
+			isPrioritize = me.getAutoPrioritize();
 
 		if(isOnCreate)
-			attachCreateSort();
+			me.attachCreateSort();
 		if(isOnInterval)
-			attachIntervalSort();
+			me.attachIntervalSort();
 		if(isPrioritize)
-			attachVisitSort();
+			me.attachVisitSort();
 	},
 
 	/**
@@ -107,9 +108,10 @@ window.SmartBookmarkSorter = {
 	 * Drops all of the attached sorts
 	*/
 	disableAutomaticSort : function () {
-		detachCreateSort();
-		detachIntervalSort();
-		detachVisitSort();
+		var me = this;
+		me.detachCreateSort();
+		me.detachIntervalSort();
+		me.detachVisitSort();
 	},
 
 	/**
@@ -120,7 +122,7 @@ window.SmartBookmarkSorter = {
 	onCreatedListener : function (id, bookmark)
 	{
 		// Sort the bookmark by title
-		sortBookmark(bookmark);
+		this.sortBookmark(bookmark);
 	},
 
 	/**
@@ -172,12 +174,12 @@ window.SmartBookmarkSorter = {
 	{
 		// Get the local counter or start it at 0
 		var me = this,
-			counterKey = SmartBookmarkSorter.config.indexCounter,
-			counterValue = jQueryStorageGetValue(counterKey) || 0;
+			counterKey = this.config.indexCounter,
+			counterValue = me.jQueryStorageGetValue(counterKey) || 0;
 			
 		// Get the ID of other bookmarks folder
-		me.getBookmarkChildren(SmartBookmarkSorter.config.rootBookmarksKey.toString(), function(results) {
-			var otherBookmarksId = results[SmartBookmarkSorter.config.otherBookmarksKey].id;
+		me.getBookmarkChildren(me.config.rootBookmarksKey.toString(), function(results) {
+			var otherBookmarksId = results[me.config.otherBookmarksKey].id;
 
 			// Get the children of other Bookmarks
 			me.getBookmarkChildren(otherBookmarksId, function(results) {
@@ -189,7 +191,7 @@ window.SmartBookmarkSorter = {
 					var title = bookmark.title;
 					var url = bookmark.url;
 					var myId = bookmark.id;
-					var baseUrl = getBaseUrl(url);
+					var baseUrl = me.getBaseUrl(url);
 
 					// Could be a folder
 					if(url !== undefined)
@@ -233,15 +235,16 @@ window.SmartBookmarkSorter = {
 	 * @param {BookmarkTreeNode} bookmark The bookmark to sort.
 	 */
 	sortBookmark : function (bookmark) {
-		createFolderByCategory(bookmark.url, undefined, function(result) {
-			createFolderByTitle(bookmark.url, result.id, function(result) {
+		var me = this;
+		me.createFolderByCategory(bookmark.url, undefined, function(result) {
+			me.createFolderByTitle(bookmark.url, result.id, function(result) {
 				var destination = {
 					index : 0,
 					parentId : result.id
 				};
 				
 				// Move the bookmark to that folder
-				moveBookmark(bookmark.id, destination, function(result){});
+				me.moveBookmark(bookmark.id, destination, function(result){});
 			});
 		});
 	},
@@ -255,8 +258,9 @@ window.SmartBookmarkSorter = {
 	 */
 	createFolderByCategory : function (url, parentId, callback) 
 	{
-		alchemyCategoryLookup(url, function(category) {
-			createFolder(category, parentId, callback);
+		var me = this;
+		me.alchemyCategoryLookup(url, function(category) {
+			me.createFolder(category, parentId, callback);
 		});
 	},
 
@@ -268,8 +272,9 @@ window.SmartBookmarkSorter = {
 	 * @param {function} callback The callback to run after creating the folder.
 	 */
 	createFolderByTitle : function (url, parentId, callback) {
-		alchemyTitleLookup(url, function(title) {
-			createFolder(title, parentId, callback);
+		var me = this;
+		me.alchemyTitleLookup(url, function(title) {
+			me.createFolder(title, parentId, callback);
 		});
 	},
 
@@ -280,13 +285,13 @@ window.SmartBookmarkSorter = {
 	 */
 	alchemyCategoryLookup : function (url, callback) 
 	{
-		var cachedData = jQueryStorageGetValue(url),
-			me = this;
+		var me = this,
+			cachedData = me.jQueryStorageGetValue(url);
 		
 		// Check if there is cached data
 		if(cachedData === null || cachedData.title === undefined) {
 			// If not, make an API request.
-			alchemyCategory(url, function(data, textStatus, jqXHR) {
+			me.alchemyCategory(url, function(data, textStatus, jqXHR) {
 
 				var category = data.category;
 				var title = undefined;
@@ -299,7 +304,7 @@ window.SmartBookmarkSorter = {
 				if (category !== null && category !== undefined) {
 			
 					// Cache the result in local storage
-					jQueryStorageSetValue(url, {title: title, category: category});
+					me.jQueryStorageSetValue(url, {title: title, category: category});
 									
 					// Invoke the callback
 					callback.call(me, category);
@@ -321,16 +326,16 @@ window.SmartBookmarkSorter = {
 	 */
 	alchemyTitleLookup : function (url, callback) {
 			// Get the base url
-			var baseUrl = getBaseUrl(url);
+			var baseUrl = this.getBaseUrl(url);
 			
 			// Check local cache to see if the base URL has associated data.
-			var cachedData = jQueryStorageGetValue(baseUrl),
-				me = this;
+			var me = this,
+				cachedData = me.jQueryStorageGetValue(baseUrl);
 			
 			// If not, make an API request.
 			if(cachedData === null || cachedData.title === undefined)
 			{
-				this.alchemyTitle(baseUrl, function(data, textStatus, jqXHR) {
+				me.alchemyTitle(baseUrl, function(data, textStatus, jqXHR) {
 
 					var title = data.title;
 					
@@ -383,7 +388,7 @@ window.SmartBookmarkSorter = {
 					};
 		
 					// Disable the bookmark onCreate listener, because programmatic creation of bookmarks/folders will kick off the event
-					me.chromeBookmarksDetachCreated(onCreatedListener);
+					me.chromeBookmarksDetachCreated(me.onCreatedListener);
 					// Create the folder
 					me.createBookmark(folder, function(result) {
 						// Enable the bookmark onCreate listener
@@ -401,7 +406,7 @@ window.SmartBookmarkSorter = {
 	 */
 	sortSample : function ()
 	{
-		this.sortOtherBookmarks(SmartBookmarkSorter.config.sampleNumber);
+		this.sortOtherBookmarks(this.config.sampleNumber);
 	},
 
 	/**
@@ -414,8 +419,8 @@ window.SmartBookmarkSorter = {
 	{
 		var me = this;
 		// Get the ID of other bookmarks folder
-		me.getBookmarkChildren(SmartBookmarkSorter.config.rootBookmarksKey.toString(), function(results) {
-			var id = results[SmartBookmarkSorter.config.otherBookmarksKey].id;
+		me.getBookmarkChildren(me.config.rootBookmarksKey.toString(), function(results) {
+			var id = results[me.config.otherBookmarksKey].id;
 			me.sortBookmarks(id, num);	
 		});
 	},
@@ -499,7 +504,7 @@ window.SmartBookmarkSorter = {
 	 */
 	setApiKey : function (apikey) 
 	{
-		this.jQueryStorageSetValue(SmartBookmarkSorter.config.bookmarksort_apikey, apikey);
+		this.jQueryStorageSetValue(this.config.bookmarksort_apikey, apikey);
 	},
 
 	/**
@@ -509,7 +514,7 @@ window.SmartBookmarkSorter = {
 	 */
 	getApiKey : function ()
 	{
-		return this.jQueryStorageGetValue(SmartBookmarkSorter.config.bookmarksort_apikey);
+		return this.jQueryStorageGetValue(this.config.bookmarksort_apikey);
 	},
 
 	/**
@@ -519,7 +524,7 @@ window.SmartBookmarkSorter = {
 	 */
 	setAutoOnCreate : function (value)
 	{
-		this.jQueryStorageSetValue(SmartBookmarkSorter.config.autoSortCreateKey, value);
+		this.jQueryStorageSetValue(this.config.autoSortCreateKey, value);
 	},
 
 	/**
@@ -529,7 +534,7 @@ window.SmartBookmarkSorter = {
 	 */
 	getAutoOnCreate : function ()
 	{
-		return this.jQueryStorageGetValue(SmartBookmarkSorter.config.autoSortCreateKey);
+		return this.jQueryStorageGetValue(this.config.autoSortCreateKey);
 	},
 
 	/**
@@ -539,7 +544,7 @@ window.SmartBookmarkSorter = {
 	 */
 	setAutoInterval : function (value)
 	{
-		this.jQueryStorageSetValue(SmartBookmarkSorter.config.autoTimedKey, value);
+		this.jQueryStorageSetValue(this.config.autoTimedKey, value);
 	},
 
 	/**
@@ -550,7 +555,7 @@ window.SmartBookmarkSorter = {
 	getAutoInterval : function ()
 	{
 		console.log("THIS === ", this);
-		return this.jQueryStorageGetValue(SmartBookmarkSorter.config.autoTimedKey);
+		return this.jQueryStorageGetValue(this.config.autoTimedKey);
 	},
 
 	/**
@@ -560,7 +565,7 @@ window.SmartBookmarkSorter = {
 	 */
 	setAutoPrioritize : function (value)
 	{
-		this.jQueryStorageSetValue(SmartBookmarkSorter.config.autoSortPriorityKey, value);
+		this.jQueryStorageSetValue(this.config.autoSortPriorityKey, value);
 	},
 
 	/**
@@ -570,7 +575,7 @@ window.SmartBookmarkSorter = {
 	 */
 	getAutoPrioritize : function ()
 	{
-		return this.jQueryStorageGetValue(SmartBookmarkSorter.config.autoSortPriorityKey);
+		return this.jQueryStorageGetValue(this.config.autoSortPriorityKey);
 	},
 
 	/**
@@ -580,7 +585,7 @@ window.SmartBookmarkSorter = {
 	 */
 	setOldBookmarkDays : function (value)
 	{
-		this.jQueryStorageSetValue(SmartBookmarkSorter.config.oldBookmarkDaysKey, value);
+		this.jQueryStorageSetValue(this.config.oldBookmarkDaysKey, value);
 	},
 
 	/**
@@ -590,7 +595,7 @@ window.SmartBookmarkSorter = {
 	 */
 	getOldBookmarkDays : function ()
 	{
-		return this.jQueryStorageGetValue(SmartBookmarkSorter.config.oldBookmarkDaysKey) || SmartBookmarkSorter.config.oldBookmarkDaysDefault;
+		return this.jQueryStorageGetValue(this.config.oldBookmarkDaysKey) || this.config.oldBookmarkDaysDefault;
 	},
 
 	/**
@@ -679,7 +684,9 @@ window.SmartBookmarkSorter = {
 	alchemyKeyTest : function (apiKey, callbackA, callbackB, argsA, argsB, scope)
 	{
 		//Create a local data object for the API request 
-		var url = "http://www.google.com";
+		var url = "http://www.google.com",
+			me = this;
+			
 		var data = { 
 			url : url,
 			apikey : apiKey,
@@ -688,11 +695,12 @@ window.SmartBookmarkSorter = {
 		
 		var dataType = "json";
 		var requestURL = this.config.requestCategoryURL;
+		
 		var apiCallback = function(data, textStatus, jqXHR) {
 			data.statusInfo === "invalid-api-key" ? callbackB.apply(argsB, scope) : callbackA.apply(argsA, scope);
 		};
 		//API request for getting the category of a URL
-		this.jqueryREST(requestURL, data, apiCallback, dataType);
+		me.jqueryREST(requestURL, data, apiCallback, dataType);
 	},
 
 	/**
@@ -705,20 +713,21 @@ window.SmartBookmarkSorter = {
 	alchemyCategory : function (url, callback)
 	{
 		// Get the api key from local storage
-		var apikey = getApiKey();
+		var me = this,
+			apikey = me.getApiKey();
 		
 		// Create a local data object for the API request 
 		var data = { 
 			url : url,
 			apikey : apikey,
-			outputMode : this.SmartBookmarkSorter.config.outputMode
+			outputMode : me.config.outputMode
 		};
 		
 		var dataType = "json";
-		var requestURL = this.SmartBookmarkSorter.config.requestCategoryURL;
+		var requestURL = me.config.requestCategoryURL;
 		
 		// API request for getting the category of a URL
-		this.jqueryREST(requestURL, data, callback, dataType);
+		me.jqueryREST(requestURL, data, callback, dataType);
 	},
 
 	/**
@@ -731,20 +740,21 @@ window.SmartBookmarkSorter = {
 	alchemyTitle : function (url, callback)
 	{
 		// Get the api key from local storage
-		var apikey = getApiKey();
+		var me = this,
+			apikey = me.getApiKey();
 
 		//Create a local data object for the API request 
 		var data = { 
 			url : url,
 			apikey : apikey,
-			outputMode : this.SmartBookmarkSorter.config.outputMode
+			outputMode : me.config.outputMode
 		};
 		
 		var dataType = "json";
-		var requestURL = this.SmartBookmarkSorter.config.requestTitleURL;
+		var requestURL = me.config.requestTitleURL;
 		
 		//API request for getting the category of a URL
-		this.jqueryREST(requestURL, data, callback, dataType);
+		me.jqueryREST(requestURL, data, callback, dataType);
 	},
 
 	/******* FUNCTIONAL *******/
@@ -812,8 +822,8 @@ window.SmartBookmarkSorter = {
 	getOtherBookmarks : function (callback) {
 		// Get the ID of other bookmarks folder
 		var me = this;
-		me.getBookmarkChildren(SmartBookmarkSorter.config.rootBookmarksKey.toString(), function(results) {
-			var otherBookmarks = results[SmartBookmarkSorter.config.otherBookmarksKey];
+		me.getBookmarkChildren(me.config.rootBookmarksKey.toString(), function(results) {
+			var otherBookmarks = results[me.config.otherBookmarksKey];
 			callback.call(me, otherBookmarks);
 		});
 	},
@@ -846,8 +856,9 @@ window.SmartBookmarkSorter = {
 	 */
 	removeBookmarks : function (name)
 	{
+		var me = this;
 		me.searchFolders(function(bookmark){return bookmark != undefined && bookmark.title == name; }, function(ret) {
-			forEach(ret, function(bookmark){
+			me.forEach(ret, function(bookmark){
 				chrome.bookmarks.remove(bookmark.id, function() {});
 			});
 		});

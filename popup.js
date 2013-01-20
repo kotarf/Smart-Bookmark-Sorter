@@ -6,7 +6,7 @@ $(function() {
 	$( "#tabs" ).tabs({ heightStyle: "content" });
 
 	// Get api key from local storage
-	var key = background_page.getApiKey();
+	var key = background_page.SmartBookmarkSorter.getApiKey();
 
 	if (key === null || key === undefined) {
 		$('#tabs').tabs('disable', 1); // disable second tab
@@ -25,10 +25,10 @@ $(function() {
 	$( "#button_key").button().click(function() {
 		var key =  $("#autocomplete_apikey").val();
 		// Test the API key to see if it is valid
-		background_page.alchemyKeyTest( key, 
+		background_page.SmartBookmarkSorter.alchemyKeyTest( key, 
 			function() { 
 				// Save the state and the key
-				background_page.setApiKey(key);
+				background_page.SmartBookmarkSorter.setApiKey(key);
 				
 				$('#tabs').tabs('disable', 0); // disable first tab
 				
@@ -74,18 +74,17 @@ $(function() {
 		stop: function( event, ui ) {	
 			// Set the archive days
 			var value = $( "#spinner_archivedays" ).spinner( "value");
-			background_page.setOldBookmarkDays(value);
+			background_page.SmartBookmarkSorter.setOldBookmarkDays(value);
 		}
 	});
 
-	var oldBookmarkDays = background_page.getOldBookmarkDays();
+	var oldBookmarkDays = background_page.SmartBookmarkSorter.getOldBookmarkDays();
 	
 	$( "#spinner_archivedays" ).spinner( "value", oldBookmarkDays);
 	
 	$( "#button_sample").button().click(function() {
 		// Sort a sample of bookmarks
-		background_page.sortSample();
-		sortSample();
+		background_page.SmartBookmarkSorter.sortSample();
 	});
 	
 	$( "#button_sort").button().click(function() {
@@ -103,7 +102,7 @@ $(function() {
 		hide: "explode",
 		buttons: {
 			"Sort all bookmarks": function() {
-				background_page.sortOtherBookmarks(null);
+				background_page.SmartBookmarkSorter.sortOtherBookmarks(null);
 				$( this ).dialog( "close" );
 			},
 			Cancel: function() {
@@ -131,11 +130,11 @@ $(function() {
 		var isChecked = $( "#button_interval" ).is(':checked');
 		if(isChecked) {
 			// Set the on interval sort flag to true
-			background_page.setAutoInterval(true);
+			background_page.SmartBookmarkSorter.setAutoInterval(true);
 		}
 		else {
 			// Set the on interval sort flag to false
-			background_page.setAutoInterval(false);
+			background_page.SmartBookmarkSorter.setAutoInterval(false);
 		}
 	});
 	
@@ -143,18 +142,18 @@ $(function() {
 		var isChecked = $( "#button_prioritize" ).is(':checked');
 		if(isChecked) {
 			// Set the on create flag to true
-			background_page.setAutoPrioritize(true);
+			background_page.SmartBookmarkSorter.setAutoPrioritize(true);
 		}
 		else {
 			// Set the on create flag to false
-			background_page.setAutoPrioritize(false);
+			background_page.SmartBookmarkSorter.setAutoPrioritize(false);
 		}
 	});
 	
 	// Restore states for autosort buttons
-	var isOnCreate = background_page.getAutoOnCreate();
-	var isOnInterval = background_page.getAutoInterval();
-	var isPrioritize = background_page.getAutoPrioritize();
+	var isOnCreate = background_page.SmartBookmarkSorter.getAutoOnCreate();
+	var isOnInterval = background_page.SmartBookmarkSorter.getAutoInterval();
+	var isPrioritize = background_page.SmartBookmarkSorter.getAutoPrioritize();
 	if(isOnCreate) {
 		$("#button_oncreate").attr("checked","checked");
 		$("#button_oncreate").button("refresh");
@@ -173,11 +172,17 @@ $(function() {
 		if(isChecked) {
 			// Enable automatic sort
 			console.log("Background page = ", background_page);
-			background_page.enableAutomaticSort();
+			background_page.SmartBookmarkSorter.enableAutomaticSort();
 		}
 		else {
 			// Disable automatic sort
-			background_page.disableAutomaticSort();
+			background_page.SmartBookmarkSorter.disableAutomaticSort();
 		}
 	});
+	
+	if(isOnCreate || isOnInterval || isPrioritize) {
+		$("#button_autosort").attr("checked","checked");
+		$("#button_autosort").button("refresh");	
+	}
+
 });
