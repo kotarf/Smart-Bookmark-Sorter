@@ -2,7 +2,7 @@
 <html lang="us">
 <head>
 	<meta charset="utf-8">
-	<title>SmartSort</title>
+	<title>Smart Bookmark Sorter</title>
 	
 	<!--********** JQuery ************-->
 	<script src="js/jquery-1.8.3.js"></script>
@@ -16,7 +16,7 @@
 	<script src="popup.js"></script>
 	<link rel="stylesheet" type="text/css" href="css/popup.css" />
 	
-		<script src="bookmarksorter.js"></script>
+	<script src="bookmarksorter.js"></script>
 
 </head>
 
@@ -66,7 +66,7 @@
 		<p>This will sort all your bookmarks. Please make sure you have backed up your bookmarks before proceeding!</p>
 		<p>
 		  <label for="spinner_archivedays">Archive bookmarks older than:</label>
-		  <input id="spinner_archivedays" name="value" title="Bookmarks older than this amount will be sorted into Category folders." /> days
+		  <input id="spinner_archivedays" name="value" title="Bookmarks older than this amount will be sorted." /> days
 		</p>
 		<div id="container" style="width:500px">
 			<button id="button_sample" title="Sort a sample of bookmarks to see how it works before committing.">Sort Sample</button>
@@ -78,11 +78,11 @@
 		<p>Configure automatic sort, which will maintain order in your bookmarks while active. The three options below allow you to customize automatic sort.</p>
 		<div id="container" style="width:500px">
 			<input type="checkbox" id="button_oncreate"/>
-			<label for="button_oncreate" title="Will sort bookmarks as they are created into appropriate Title folders.">Sort on Bookmark Event</label>
+			<label for="button_oncreate" title="Will sort bookmarks as they are created.">Sort on Bookmark Event</label>
 			<input type="checkbox" id="button_interval"/>
-			<label for="button_interval" title="Will archive older bookmarks on a timed interval.">Sort on Timed Interval</label>
+			<label for="button_interval" title="Will sort older bookmarks on a timed interval.">Sort on Timed Interval</label>
 			<input type="checkbox" id="button_prioritize"/>
-			<label for="button_prioritize" title="Will move frequently accessed bookmarks to the top of the list.">Prioritize Bookmarks</label>
+			<label for="button_prioritize" title="Will move bookmarks to the top of the list as they are accessed.">Prioritize Bookmarks</label>
 		</div>
 		<p>Enable and disable automatic sorting below.</p>
 		<input type="checkbox" id="button_autosort"/>
