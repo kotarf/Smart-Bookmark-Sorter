@@ -14,7 +14,7 @@
 /******* BOOKMARK SORTER *******/
 
 (function(global) {
-	window.SmartBookmarkSorter = {
+	global.SmartBookmarkSorter = {
 		/** SmartBookmarkSorter configuration properties. These are all constants. */
 		config : {
 			requestCategoryURL : 		"http://access.alchemyapi.com/calls/url/URLGetCategory",
@@ -33,7 +33,7 @@
 			bookmarkAlarm : 			"bookmarkAlarm",
 			rootBookmarksIndex : 		0,
 			otherBookmarksIndex : 		1,
-			sampleNumber : 				5,
+			sampleNumber : 				3,
 			categoryErrorScore :		.5
 		},
 
@@ -52,7 +52,6 @@
 		 */
 		attachIntervalSort : function () {
 			/* On a timed interval, older bookmarks will be archived to a Category folder and loose bookmarks will be sorted. */
-			console.log('hay');
 			this.chromeDeployAlarm(this.config.bookmarkAlarm, this.intervalAlarm, this.config.autoSortMinutes); 
 		},
 
@@ -181,7 +180,7 @@
 				SBS = me.SmartBookmarkSorter;
 				counterKey = SBS.config.indexCounter,
 				counterValue = SBS.jQueryStorageGetValue(counterKey) || 0;
-			console.log("INTERVAL ALARM!!!");
+
 			// Get the ID of other bookmarks folder
 			SBS.getBookmarkChildren(SBS.config.rootBookmarksIndex.toString(), function(results) {
 				var otherBookmarksId = results[SBS.config.otherBookmarksIndex].id;
@@ -211,16 +210,14 @@
 										var visitTime = visit.visitTime;
 										var currentTime = new Date();
 										var daysBetween = SBS.daysBetween(visitTime, currentTime.getTime());
-										console.log("Checking bookmark " , bookmark);
 
 										if (daysBetween > oldBookmarkDays) {
 											// Sort the bookmark by category
-											console.log("Sorting bookmark " , bookmark);
+										
 											SBS.sortBookmark(bookmark);		
 										} 
 									} else {
 										// No history on this item... sort it anyway.
-										console.log("Sorting bookmark " , bookmark);
 
 										SBS.sortBookmark(bookmark);		
 									}
@@ -232,7 +229,6 @@
 				
 					// Set the counter to the next index, or 0 if it is the tail
 					var incCounter = counterValue < results.length ? counterValue + 1 : 0;
-					console.log("Counter ", counterValue, " is now ", incCounter);
 
 					SBS.jQueryStorageSetValue(counterKey, incCounter);
 				});
@@ -246,7 +242,7 @@
 		 */
 		sortBookmark : function (bookmark) {
 			var me = this;
-
+		
 			me.createFolderByCategory(bookmark.url, undefined, function(result) {
 				me.createFolderByTitle(bookmark.url, result.id, function(result) {
 					var destination = {
@@ -254,9 +250,10 @@
 						parentId : result.id
 					};
 					
-					// Move the bookmark to that folder if there is a successful result
-					if (result !== undefined && result !== null)
+					// Move the bookmark to that folder only if there is a successful result
+					if (result !== undefined && result !== null) {
 						me.moveBookmark(bookmark.id, destination, function(result){});
+					} 
 				});
 			});
 		},
@@ -271,7 +268,7 @@
 		createFolderByCategory : function (url, parentId, callback) 
 		{
 			var me = this;
-
+			
 			me.alchemyCategoryLookup(url, function(category) {
 				me.createFolder(category, parentId, callback);
 			});
@@ -308,32 +305,38 @@
 
 					var category = data.category;
 					var title = undefined;
+					var status = data.status;
+			
+					// Check the status first
+					if (status === "OK") {
 					
-					// If the score of the result is horrible, redo the whole thing using the baseUrl (if not already using it)
-					var score = data.score;
-					var baseUrl = me.getBaseUrl(data.url);
-					
-					if (score < me.config.categoryErrorScore && baseUrl !== undefined ) {
-						// Redo the categorization with the base URL because the result was not good enough
-						me.alchemyCategoryLookup(baseUrl, callback);
+						// If the score of the result is horrible, redo the whole thing using the baseUrl (if not already using it)
+						var score = data.score;
+						var baseUrl = me.getBaseUrl(data.url);
 						
-					} else {			
-						// Title data may already exist
-						if(cachedData != null)
-							title = cachedData.title;
-									
-						// Check result
-						if (category !== null && category !== undefined) {
-					
-							// Cache the result in local storage
-							me.jQueryStorageSetValue(url, {title: title, category: category});
-											
-							// Invoke the callback
-							callback.call(me, category);
+						if (score < me.config.categoryErrorScore && baseUrl !== undefined ) {
+							// Redo the categorization with the base URL because the result was not good enough
+							me.alchemyCategoryLookup(baseUrl, callback);
+							
+						} else {			
+							// Title data may already exist
+							if(cachedData != null)
+								title = cachedData.title;
+										
+							// Check result
+							if (category !== null && category !== undefined) {
+						
+								// Cache the result in local storage
+								me.jQueryStorageSetValue(url, {title: title, category: category});
+												
+								// Invoke the callback
+								callback.call(me, category);
+							}
 						}
 					}
 				});
 			} else {
+
 				// Cached category
 				var category = cachedData.category;
 				// Invoke the callback
@@ -353,27 +356,32 @@
 				// Check local cache to see if the base URL has associated data.
 				var me = this,
 					cachedData = me.jQueryStorageGetValue(baseUrl);
-				
+
 				// If not, make an API request.
 				if(cachedData === null || cachedData.title === undefined)
 				{
 					me.alchemyTitle(baseUrl, function(data, textStatus, jqXHR) {
 
 						var title = data.title;
-						
 						var category = undefined;
-						// Category data may already exist
-						if(cachedData != null)
-							category = cachedData.category;
+						var status = data.status;
+			
+						// Check the status first
+						if (status === "OK") {						
 						
-						// Check result
-						if (title !== null && title !== undefined) {		
-							// Cache the result in local storage
-							me.jQueryStorageSetValue(baseUrl, {title: title, category: category});
+							// Category data may already exist
+							if(cachedData != null)
+								category = cachedData.category;
+							
+							// Check result
+							if (title !== null && title !== undefined) {		
+								// Cache the result in local storage
+								me.jQueryStorageSetValue(baseUrl, {title: title, category: category});
+							}
+							
+							// Invoke the callback
+							callback.call(me, title);
 						}
-						
-						// Invoke the callback
-						callback.call(me, title);
 					});
 				}
 				else 
@@ -396,7 +404,7 @@
 		createFolder : function (title, parentId, callback) {
 				var me = this;
 				
-				me.searchFolders(parentId, function(bookmark) {return bookmark !== undefined && bookmark.title == title && bookmark.url == undefined}, 
+				me.searchFolders(parentId, function(bookmark) {return bookmark !== undefined && bookmark.title === title && bookmark.url === undefined}, 
 				function(ret) {
 					if(ret.length > 0){
 						// Folder already exists - invoke the callback with the first result
@@ -463,7 +471,7 @@
 				// Sort the bookmarks
 				for (; i < numSorts; i++) {
 					var bookmark = results[i];
-
+		
 					// Closure
 					(function(bookmark, me) {
 
@@ -487,7 +495,6 @@
 										
 											if (daysBetween > oldBookmarkDays) {
 												// Sort the bookmark
-												
 												me.sortBookmark(bookmark);
 											} else {
 												// Move the bookmark to the top of other bookmarks
@@ -517,10 +524,35 @@
 							}
 						} 
 					})(bookmark, me)
-				}	
+				}
+				
+				// Remove empty top-level folders
+				me.removeEmptyFolders();
 			});
 		},
+		
+		/**
+		 * Removes all empty folders in Other Bookmarks
+		 */
+		 removeEmptyFolders : function()
+		 {
+			var me = this;
+			me.getOtherBookmarks(function(result) {
+				me.searchFolders(result.id, function(bookmark){return bookmark.url === undefined;}, function(ret) {
+					// Loop through
+					me.forEach(ret, function(bookmark) {
+						// If I'm empty, remove me
+						me.getBookmarkChildren(bookmark.id, function(results) {
+							if (results.length == 0) {
+								me.removeBookmark(bookmark.id, function(){});
+							}
+						});
+					});
+				});
 
+			});
+		 },
+		
 		/**
 		 * Sets the api key in local storage
 		 * @param {string} apikey The apikey to set
@@ -808,6 +840,8 @@
 		/**
 		 * Recurses through the bookmark tree looking for bookmarks that pass the test
 		 * Needed because chrome.bookmarks.search() does not include folders in the result.
+		 * This code is very broken!
+		 * @param {string} parentId The optional parentId to search for 
 		 * @param {function} test The function to test on a BookmarkTreeNode element 
 		 * @param {function} callback The callback to run with the results
 		 */
@@ -818,10 +852,6 @@
 			function testBookmarks(bookmarks) {
 			  me.forEach(bookmarks, function(bookmark) {
 
-				if (bookmark.children){
-					testBookmarks(bookmark.children);
-				}
-			
 				if(test.call(me, bookmark)){
 					ret.push(bookmark);
 				}
@@ -830,10 +860,11 @@
 
 			  return ret;
 			}
+			
 			me.getOtherBookmarks(function(result) {
 				var searchParentId = parentId || result.id;
 				
-				chrome.bookmarks.getChildren(searchParentId, function(bookmarks) {
+				me.getBookmarkChildren(searchParentId, function(bookmarks) {
 					var ret = testBookmarks(bookmarks);
 					callback.call(me, ret);
 				});
@@ -874,6 +905,15 @@
 		getBookmarkChildren : function (id, callback)
 		{
 			chrome.bookmarks.getChildren(id, callback);
+		},
+
+		/**
+		 * Removes a bookmark with the given ID.
+		 * @param {string} id The id of the bookmark to remove
+		 * @param {function} callback The callback to run after removing
+		 */
+		removeBookmark : function (id, callback) {
+			chrome.bookmarks.remove(id, callback);
 		},
 
 		/**
@@ -979,9 +1019,5 @@
 			chrome.history.getVisits({url: url}, callback);
 		}
 	}
-	console.log( "YAY-", chrome.extension.getViews() );
-	//SmartBookmarkSorter.attachVisitSort();
-	//SmartBookmarkSorter.attachIntervalSort();
-	//SmartBookmarkSorter.attachCreateSort();
 
 })(this);
