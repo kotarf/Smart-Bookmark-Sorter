@@ -29,9 +29,9 @@
 			outputMode : 				"json",
 			autoSortMinutes : 			1,
 			indexCounter : 				"bookmarkIndexCounter",
-			oldBookmarkDaysDefault : 	30,
+			oldBookmarkDaysDefault : 	7,
 			bookmarkAlarm : 			"bookmarkAlarm",
-			rootBookmarksIndex : 			0,
+			rootBookmarksIndex : 		0,
 			otherBookmarksIndex : 		1,
 			sampleNumber : 				5,
 			categoryErrorScore :		.5
@@ -254,8 +254,9 @@
 						parentId : result.id
 					};
 					
-					// Move the bookmark to that folder
-					me.moveBookmark(bookmark.id, destination, function(result){});
+					// Move the bookmark to that folder if there is a successful result
+					if (result !== undefined && result !== null)
+						me.moveBookmark(bookmark.id, destination, function(result){});
 				});
 			});
 		},
@@ -409,11 +410,9 @@
 						};
 			
 						// Disable the bookmark onCreate listener, because programmatic creation of bookmarks/folders will kick off the event
-						me.chromeBookmarksDetachCreated(me.onCreatedListener);
+						me.detachCreateSort();
 						// Create the folder
 						me.createBookmark(folder, function(result) {
-							// Enable the bookmark onCreate listener
-							me.chromeBookmarkOnCreated(me.onCreatedListener);
 							// Invoke the callback
 							callback.call(me, result);
 						});
@@ -488,6 +487,7 @@
 										
 											if (daysBetween > oldBookmarkDays) {
 												// Sort the bookmark
+												
 												me.sortBookmark(bookmark);
 											} else {
 												// Move the bookmark to the top of other bookmarks
@@ -979,8 +979,9 @@
 			chrome.history.getVisits({url: url}, callback);
 		}
 	}
+	console.log( "YAY-", chrome.extension.getViews() );
 	//SmartBookmarkSorter.attachVisitSort();
 	//SmartBookmarkSorter.attachIntervalSort();
-	SmartBookmarkSorter.attachCreateSort();
+	//SmartBookmarkSorter.attachCreateSort();
 
 })(this);
