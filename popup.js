@@ -6,7 +6,7 @@ $(function() {
 	$( "#tabs" ).tabs({ heightStyle: "content" });
 
 	// Get api key from local storage
-	var key = SmartBookmarkSorter.getApiKey();
+	var key = background_page.SmartBookmarkSorter.getApiKey();
 
 	if (key === null || key === undefined) {
 		$('#tabs').tabs('disable', 1); // disable second tab
@@ -25,10 +25,10 @@ $(function() {
 	$( "#button_key").button().click(function() {
 		var key =  $("#autocomplete_apikey").val();
 		// Test the API key to see if it is valid
-		SmartBookmarkSorter.alchemyKeyTest( key, 
+		background_page.SmartBookmarkSorter.alchemyKeyTest( key, 
 			function() { 
 				// Save the state and the key
-				SmartBookmarkSorter.setApiKey(key);
+				background_page.SmartBookmarkSorter.setApiKey(key);
 				
 				$('#tabs').tabs('disable', 0); // disable first tab
 				
@@ -74,17 +74,17 @@ $(function() {
 		stop: function( event, ui ) {	
 			// Set the archive days
 			var value = $( "#spinner_archivedays" ).spinner( "value");
-			SmartBookmarkSorter.setOldBookmarkDays(value);
+			background_page.SmartBookmarkSorter.setOldBookmarkDays(value);
 		}
 	});
 
-	var oldBookmarkDays = SmartBookmarkSorter.getOldBookmarkDays();
+	var oldBookmarkDays = background_page.SmartBookmarkSorter.getOldBookmarkDays();
 	
 	$( "#spinner_archivedays" ).spinner( "value", oldBookmarkDays);
 	
 	$( "#button_sample").button().click(function() {
 		// Sort a sample of bookmarks
-		SmartBookmarkSorter.sortSample();
+		background_page.SmartBookmarkSorter.sortSample();
 	});
 	
 	$( "#button_sort").button().click(function() {
@@ -102,7 +102,7 @@ $(function() {
 		hide: "explode",
 		buttons: {
 			"Sort all bookmarks": function() {
-				SmartBookmarkSorter.sortOtherBookmarks(null);
+				background_page.SmartBookmarkSorter.sortOtherBookmarks(null);
 				$( this ).dialog( "close" );
 			},
 			Cancel: function() {
@@ -118,11 +118,11 @@ $(function() {
 		var isChecked = $( "#button_oncreate" ).is(':checked');
 		if(isChecked) {
 			// Set the on create flag to true
-			setAutoOnCreate(true);
+			background_page.SmartBookmarkSorter.setAutoOnCreate(true);
 		}
 		else {
 			// Set the on create flag to false
-			setAutoOnCreate(false);
+			background_page.SmartBookmarkSorter.setAutoOnCreate(false);
 		}
 	});
 	
@@ -130,11 +130,11 @@ $(function() {
 		var isChecked = $( "#button_interval" ).is(':checked');
 		if(isChecked) {
 			// Set the on interval sort flag to true
-			SmartBookmarkSorter.setAutoInterval(true);
+			background_page.SmartBookmarkSorter.setAutoInterval(true);
 		}
 		else {
 			// Set the on interval sort flag to false
-			SmartBookmarkSorter.setAutoInterval(false);
+			background_page.SmartBookmarkSorter.setAutoInterval(false);
 		}
 	});
 	
@@ -142,18 +142,18 @@ $(function() {
 		var isChecked = $( "#button_prioritize" ).is(':checked');
 		if(isChecked) {
 			// Set the on create flag to true
-			SmartBookmarkSorter.setAutoPrioritize(true);
+			background_page.SmartBookmarkSorter.setAutoPrioritize(true);
 		}
 		else {
 			// Set the on create flag to false
-			SmartBookmarkSorter.setAutoPrioritize(false);
+			background_page.SmartBookmarkSorter.setAutoPrioritize(false);
 		}
 	});
 	
 	// Restore states for autosort buttons
-	var isOnCreate = SmartBookmarkSorter.getAutoOnCreate();
-	var isOnInterval = SmartBookmarkSorter.getAutoInterval();
-	var isPrioritize = SmartBookmarkSorter.getAutoPrioritize();
+	var isOnCreate = background_page.SmartBookmarkSorter.getAutoOnCreate();
+	var isOnInterval = background_page.SmartBookmarkSorter.getAutoInterval();
+	var isPrioritize = background_page.SmartBookmarkSorter.getAutoPrioritize();
 	if(isOnCreate) {
 		$("#button_oncreate").attr("checked","checked");
 		$("#button_oncreate").button("refresh");
@@ -171,12 +171,11 @@ $(function() {
 		var isChecked = $( "#button_autosort" ).is(':checked');
 		if(isChecked) {
 			// Enable automatic sort
-			console.log("Background page = ", background_page);
-			SmartBookmarkSorter.enableAutomaticSort();
+			background_page.SmartBookmarkSorter.enableAutomaticSort();
 		}
 		else {
 			// Disable automatic sort
-			SmartBookmarkSorter.disableAutomaticSort();
+			background_page.SmartBookmarkSorter.disableAutomaticSort();
 		}
 	});
 	

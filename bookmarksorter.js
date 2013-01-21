@@ -464,14 +464,14 @@
 		{
 			var me = this;
 			me.getBookmarkChildren(rootId, function(results) {
-				
+	
 				var numSorts = num || results.length,
 					i = 0;
 
 				// Sort the bookmarks
 				for (; i < numSorts; i++) {
 					var bookmark = results[i];
-		
+
 					// Closure
 					(function(bookmark, me) {
 
