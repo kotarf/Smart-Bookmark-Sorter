@@ -124,7 +124,7 @@
 			// Sort the bookmark by title
 			var me = this,
 				SBS = me.SmartBookmarkSorter;
-			SBS.sortBookmark(bookmark);
+			SBS.sortBookmark(bookmark, callback);
 		},
 
 		/**
@@ -214,12 +214,12 @@
 										if (daysBetween > oldBookmarkDays) {
 											// Sort the bookmark by category
 										
-											SBS.sortBookmark(bookmark);		
+											SBS.sortBookmark(bookmark, callback);		
 										} 
 									} else {
 										// No history on this item... sort it anyway.
 
-										SBS.sortBookmark(bookmark);		
+										SBS.sortBookmark(bookmark, callback);		
 									}
 								} 
 							});
@@ -239,8 +239,10 @@
 		 * Sorts a single bookmark
 		 * Makes two folders and puts the bookmark in the 2nd folder
 		 * @param {BookmarkTreeNode} bookmark The bookmark to sort.
+		 * @param {function} callback The bookmark to sort.
+		 * @param {object} deferred The deferred object to resolve [JQuery whenSync].
 		 */
-		sortBookmark : function (bookmark) {
+		sortBookmark : function (bookmark, callback, deferred) {
 			var me = this;
 		
 			me.createFolderByCategory(bookmark.url, undefined, function(result) {
@@ -252,8 +254,12 @@
 					
 					// Move the bookmark to that folder only if there is a successful result
 					if (result !== undefined && result !== null) {
-						me.moveBookmark(bookmark.id, destination, function(result){});
-					} 
+						me.moveBookmark(bookmark.id, destination, function(result){
+							callback.call(me, result, deferred);
+						});
+					} else {
+						callback.call(me, result, deferred);
+					}
 				});
 			});
 		},
@@ -452,85 +458,152 @@
 				me.sortBookmarks(id, num);	
 			});
 		},
+	
+		/**
+		 * Sorts a bookmark if it is older than the configured age
+		 * @param {BookmarkTreeNode} bookmark The bookmark to sort.
+		 * @param {object} scope The scope to run the function in.
+		 * @param {function} callback The bookmark to sort.
+		 * @param {object} deferred The deferred object to resolve [JQuery whenSync].
+		 */
+		sortIfOld : function(bookmark, scope, callback, deferred) {
+			var me = scope;
+			console.log("oh my god sorting- ", bookmark);
 
+			if (bookmark !== undefined) {
+				var myId = bookmark.id;
+				var url = bookmark.url;
+				// It may be a folder
+				if (url !== undefined) {
+					var oldBookmarkDays = me.getOldBookmarkDays();
+
+					// Get visits for the url
+					me.chromeGetVisits(url, function(results){
+						if(results !== undefined) {
+							var visit = results[0];
+							if (visit !== undefined)
+							{
+								var visitTime = visit.visitTime;
+								var currentTime = new Date();
+								var daysBetween = me.daysBetween(visitTime, currentTime.getTime());
+							
+								if (daysBetween > oldBookmarkDays) {
+									// Sort the bookmark
+									me.sortBookmark(bookmark, callback, deferred);
+								} else {
+									// Move the bookmark to the top of other bookmarks
+									// Move it to the top of other bookmarks
+									me.getOtherBookmarks(function(result) {
+
+										var otherBookmarksId = result.id;
+															
+										var destination = {
+											parentId : otherBookmarksId,
+											index : 0
+										};
+										
+										me.moveBookmark(myId, destination, function() {
+											deferred.resolve(true);
+										});
+									});
+								}
+							} else {
+								// No history on this item... sort it anyways.
+								me.sortBookmark(bookmark, callback, deferred);
+							}
+						} 
+						
+					});	
+				}
+			} 
+		},
+		
 		/**
 		 * Manually sorts specified amount of bookmarks. If left undefined, sorts all bookmarks
-		 * NOTE: this code is broken..it doesn't count how many bookmarks it has sorted when it recurses into folders.
+		 * This code makes use of JQuery whenSync to chain an arbitrary number of asynchronous callbacks in sequence
+		 * Performance is a concern, because whenSync gives all previous results to each callback in the chain- we don't need that.
 		 * @param {string} rootId The rootId of the folder to sort.
 		 * @param {int} num The number of bookmarks to sort. If left undefined, sorts all bookmarks.
-		 * @config {int} [oldBookmarkDays] Sort bookmarks that are older than this in days
 		 */
 		sortBookmarks : function (rootId, num)
 		{
 			var me = this;
-			me.getBookmarkChildren(rootId, function(results) {
-	
-				var numSorts = num || results.length,
+			me.getFlatSubTree(rootId, num, function(result) {
+				// Make an array of sort functors
+				var sortFuncts = [],
 					i = 0;
+					length = result.length;
 
-				// Sort the bookmarks
-				for (; i < numSorts; i++) {
-					var bookmark = results[i];
-
-					// Closure
-					(function(bookmark, me) {
-
-						if (bookmark !== undefined) {
-							var myId = bookmark.id;
-							var url = bookmark.url;
-							
-							// It may be a folder
-							if (url !== undefined) {
-								var oldBookmarkDays = me.getOldBookmarkDays();
-
-								// Get visits for the url
-								me.chromeGetVisits(url, function(results){
-									if(results !== undefined) {
-										var visit = results[0];
-										if (visit !== undefined)
-										{
-											var visitTime = visit.visitTime;
-											var currentTime = new Date();
-											var daysBetween = me.daysBetween(visitTime, currentTime.getTime());
-										
-											if (daysBetween > oldBookmarkDays) {
-												// Sort the bookmark
-												me.sortBookmark(bookmark);
-											} else {
-												// Move the bookmark to the top of other bookmarks
-												// Move it to the top of other bookmarks
-												me.getOtherBookmarks(function(result) {
-
-													var otherBookmarksId = result.id;
-																		
-													var destination = {
-														parentId : otherBookmarksId,
-														index : 0
-													};
-													
-													me.moveBookmark(myId, destination, function() {});
-												});
-											}
-										} else {
-											// No history on this item... sort it anyways.
-											me.sortBookmark(bookmark);
-										}
-									} 
-									
-								});	
-							} else {
-								// Recurse into the folder
-								me.sortBookmarks(myId, numSorts);
-							}
-						} 
-					})(bookmark, me)
-				}
+				// Push the starting asynchronous call
+				sortFuncts.push(
+					function () {
+						var deferred = arguments[0];
+						var index = result.length - 1;
+						var bookmark = result[index];
+		
+						me.sortIfOld(bookmark, me, function(result, deferred) {
+							deferred.resolve(index);
+						}, deferred)	
+					}
+				);
 				
-				// Remove empty top-level folders
-				me.removeEmptyFolders();
+				// Generate the other asynchronous calls in the chain
+				for(; i < length - 1; i++) {					
+					// Push a function to sort a bookmark at the chained index
+					sortFuncts.push(
+						function () {
+							var deferred = arguments[0];
+							var index = arguments[arguments.length - 1] - 1;
+							var bookmark = result[index];
+
+							me.sortIfOld(bookmark, me, function(result, deferred) {
+								deferred.resolve(index);
+							}, deferred);			
+						}				
+					);
+				}
+
+				// Chained asynchronous callbacks		
+				var asyncChain = $.whenSync.apply(me, sortFuncts);
+				
+				// Bind to the asynchronous chain.
+				asyncChain.done(
+					function(){
+						// Empty
+					}
+				);
 			});
 		},
 		
+		/**
+		 * Gets an array of all bookmarks (children of folders included) with a given parentId
+		 * @param {string} id The parentId to get the full subtree of
+		 * @param {number} num The number of children to grab. If left undefined, grabs everything.
+		 * @param {function} callback The callback to run with the results
+		 */
+		getFlatSubTree : function(id, num, callback) {
+			var me = this;
+			chromeGetSubTree(id, function(results) {
+				var result = [];
+				var enqueue = [];
+				var numLimit = num || results.length;
+				enqueue.push(results[0]);
+				
+				while (enqueue.length > 0 && numLimit > 0 ) {
+					var element = enqueue.pop();
+					var elementChildren = element.children;
+					if (element.children === undefined) {
+						result.push(element);
+						numLimit--;
+					} else {
+						for (var i = 0; i < elementChildren.length; i++) {
+							enqueue.push(elementChildren[i]);
+						}	
+					}
+				}
+				callback.call(me, result);
+			});
+		},
 		/**
 		 * Removes all empty folders in Other Bookmarks
 		 */
@@ -834,7 +907,7 @@
 			  throw exception;
 			}
 		},
-
+		
 		/******* CHROME CONTROL *******/
 
 		/**
@@ -1017,7 +1090,16 @@
 		chromeGetVisits : function (url, callback)
 		{
 			chrome.history.getVisits({url: url}, callback);
+		},
+		
+		/**
+		 * Get subtree by id
+		 * @param {string} id The id to grab a subtree
+		 * @param {function} callback The callback to run with visit results
+		 */
+		chromeGetSubTree : function (id, callback)
+		{
+			chrome.bookmarks.getSubTree(id, callback);	
 		}
-	}
-
+	};				
 })(this);
