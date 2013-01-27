@@ -34,8 +34,12 @@
 			rootBookmarksIndex : 		0,
 			otherBookmarksIndex : 		1,
 			sampleNumber : 				5,
-			categoryErrorScore :		.5,
-			dailyLimitError : 			"DAILY_LIMIT_EXCEEDED"
+			categoryErrorScore :		.7,
+			unsortedFolderName :		"unsorted",
+			dailyLimitError : 			"daily-transaction-limit-exceeded",
+			domainError : 				"cannot-resolve-dns",
+			timeoutError :				"operation-timeout",
+			okStatus : 					"OK"
 		},
 
 		/**
@@ -123,9 +127,10 @@
 		onCreatedListener : function (id, bookmark)
 		{
 			// Sort the bookmark by title
+			console.log("Yay - ", bookmark);
 			var me = this,
 				SBS = me.SmartBookmarkSorter;
-			SBS.sortBookmark(bookmark, callback);
+			SBS.sortBookmark(bookmark, function(){}, undefined);
 		},
 
 		/**
@@ -224,9 +229,10 @@
 		 */
 		sortBookmark : function (bookmark, callback, deferred) {
 			var me = this;
-		
+	
 			me.createFolderByCategory(bookmark.url, undefined, function(result) {
 				me.createFolderByTitle(bookmark.url, result.id, function(result) {
+				
 					var destination = {
 						index : 0,
 						parentId : result.id
@@ -342,23 +348,23 @@
 		{
 			var me = this,
 				cachedData = me.jQueryStorageGetValue(url);
-		
+				baseUrl = me.getBaseUrl(url);
+				
 			// Check if there is cached data
 			if(cachedData === null || cachedData.category === undefined) {
 				// If not, make an API request.
-			
 				me.alchemyCategory(url, function(data, textStatus, jqXHR) {
 					
 					var category = data.category;
 					var title = undefined;
 					var status = data.status;
+					var statusInfo = data.statusInfo;
 		
 					// Check the status first
-					if (status === "OK") {
+					if (status === me.config.okStatus) {
 						// If the score of the result is horrible, redo the whole thing using the baseUrl (if not already using it)
 						var score = data.score;
-						var baseUrl = me.getBaseUrl(data.url);
-						
+
 						if (score < me.config.categoryErrorScore && baseUrl !== undefined ) {
 							// Redo the categorization with the base URL because the result was not good enough
 							me.alchemyCategoryLookup(baseUrl, callback);
@@ -379,11 +385,21 @@
 							}
 						}
 					} else {
-						me.chromeSendMessage(me.config.dailyLimitError);
+						// Error handling
+						console.log("ERROR CAT = ", data);
+						if(statusInfo == me.config.dailyLimitError) {
+							// Daily limit reached must stop the chain
+							me.chromeSendMessage(me.config.dailyLimitError);
+						} else if (baseUrl !== undefined) {
+							// Otherwise the page isn't HTML- fall back on the base URL.
+							me.alchemyCategoryLookup(baseUrl, callback);						
+						} else {
+							// Cannot read this page- resolve with Unsorted
+							callback.call(me, me.config.unsortedFolderName);
+						}
 					}
 				});
 			} else {
-			console.log("Good");
 				// Cached category
 				var category = cachedData.category;
 
@@ -398,12 +414,10 @@
 		 * @param {function} callback The callback to run after the REST request completes.
 		 */
 		alchemyTitleLookup : function (url, callback) {
-				// Get the base url
-				var baseUrl = this.getBaseUrl(url);
-				
 				// Check local cache to see if the base URL has associated data.
 				var me = this,
-					cachedData = me.jQueryStorageGetValue(baseUrl);
+					cachedData = me.jQueryStorageGetValue(baseUrl),
+					baseUrl = me.getBaseUrl(url);
 
 				// If not, make an API request.
 				if(cachedData === null || cachedData.title === undefined)
@@ -415,7 +429,7 @@
 						var status = data.status;
 			
 						// Check the status first
-						if (status === "OK") {						
+						if (status === me.config.okStatus) {						
 						
 							// Category data may already exist
 							if(cachedData != null)
@@ -430,7 +444,18 @@
 							// Invoke the callback
 							callback.call(me, title);
 						} else {
-							me.chromeSendMessage(me.config.dailyLimitError);
+							// Error handling
+							console.log("ERROR CAT = ", data);
+							if(status == me.config.dailyLimitError) {
+								// Daily limit reached must stop the chain
+								me.chromeSendMessage(me.config.dailyLimitError);
+							} else if (baseUrl !== undefined) {
+								// Otherwise the page isn't HTML- fall back on the base URL.
+								me.alchemyTitleLookup(baseUrl, callback);						
+							} else {
+								// Cannot read this page- resolve with Unsorted
+								callback.call(me, me.config.unsortedFolderName);
+							}
 						}
 					});
 				}
@@ -491,7 +516,7 @@
 		 */		
 		sortAllBookmarks : function()
 		{
-			this.sortSubBookmarks(30);
+			this.sortSubBookmarks(20);
 		},
 
 		/**
@@ -764,8 +789,13 @@
 		getBaseUrl : function (url)
 		{
 			pathArray = String(url).split( '/' ); 
-			host = pathArray[2]; 
-			return host;
+			host = pathArray[2];
+			if (host === undefined) {
+				return host;
+			}
+			else {
+				return "http://" + host;
+			}
 		},
 
 		/**
@@ -1150,5 +1180,4 @@
 			chrome.extension.sendMessage(undefined, message);		
 		}
 	};
-
 })(this);
