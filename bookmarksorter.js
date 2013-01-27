@@ -341,6 +341,7 @@
 
 		/**
 		 * Makes an Alchemy API request to check the category if it is not already cached
+		 * TODO merge category and title functions together
 		 * @param {string} url The url to lookup.
 		 * @param {function} callback The callback to run after the REST request completes.
 		 */
@@ -427,6 +428,7 @@
 						var title = data.title;
 						var category = undefined;
 						var status = data.status;
+						var statusInfo = data.statusInfo;
 			
 						// Check the status first
 						if (status === me.config.okStatus) {						
@@ -446,7 +448,7 @@
 						} else {
 							// Error handling
 							console.log("ERROR CAT = ", data);
-							if(status == me.config.dailyLimitError) {
+							if(statusInfo == me.config.dailyLimitError) {
 								// Daily limit reached must stop the chain
 								me.chromeSendMessage(me.config.dailyLimitError);
 							} else if (baseUrl !== undefined) {
