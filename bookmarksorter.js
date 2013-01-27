@@ -33,8 +33,9 @@
 			bookmarkAlarm : 			"bookmarkAlarm",
 			rootBookmarksIndex : 		0,
 			otherBookmarksIndex : 		1,
-			sampleNumber : 				3,
-			categoryErrorScore :		.5
+			sampleNumber : 				5,
+			categoryErrorScore :		.5,
+			dailyLimitError : 			"DAILY_LIMIT_EXCEEDED"
 		},
 
 		/**
@@ -200,29 +201,8 @@
 						// Could be a folder
 						if(url !== undefined)
 						{
-							// Get visits for the url
-							SBS.chromeGetVisits(url, function(results) {
-								var oldBookmarkDays = SBS.getOldBookmarkDays();
-								if(results !== undefined) {
-									var visit = results[0];
-									if (visit !== undefined)
-									{
-										var visitTime = visit.visitTime;
-										var currentTime = new Date();
-										var daysBetween = SBS.daysBetween(visitTime, currentTime.getTime());
-
-										if (daysBetween > oldBookmarkDays) {
-											// Sort the bookmark by category
-										
-											SBS.sortBookmark(bookmark, callback);		
-										} 
-									} else {
-										// No history on this item... sort it anyway.
-
-										SBS.sortBookmark(bookmark, callback);		
-									}
-								} 
-							});
+							// Sort the bookmark if it's older than the configured amount
+							SBS.sortIfOld(bookmark, me, function(){}, undefined);
 						}
 					}	
 					// Otherwise, do nothing.
@@ -263,202 +243,7 @@
 				});
 			});
 		},
-
-		/**
-		 * Creates a folder by the category of the given URL
-		 * Makes an Alchemy API request to check the category if it is not already cached
-		 * @param {string} url The url to lookup.
-		 * @param {string} parentId The parentId to create the folder in.
-		 * @param {function} callback The callback to run after creating the folder.
-		 */
-		createFolderByCategory : function (url, parentId, callback) 
-		{
-			var me = this;
-			
-			me.alchemyCategoryLookup(url, function(category) {
-				me.createFolder(category, parentId, callback);
-			});
-		},
-
-		/**
-		 * Creates a folder by the title of the given URL
-		 * Makes an Alchemy API request to check the title if it is not already cached
-		 * @param {string} url The url to lookup.
-		 * @param {string} parentId The parentId to create the folder in.
-		 * @param {function} callback The callback to run after creating the folder.
-		 */
-		createFolderByTitle : function (url, parentId, callback) {
-			var me = this;
-			me.alchemyTitleLookup(url, function(title) {
-				me.createFolder(title, parentId, callback);
-			});
-		},
-
-		/**
-		 * Makes an Alchemy API request to check the category if it is not already cached
-		 * @param {string} url The url to lookup.
-		 * @param {function} callback The callback to run after the REST request completes.
-		 */
-		alchemyCategoryLookup : function (url, callback) 
-		{
-			var me = this,
-				cachedData = me.jQueryStorageGetValue(url);
-			
-			// Check if there is cached data
-			if(cachedData === null || cachedData.title === undefined) {
-				// If not, make an API request.
-				me.alchemyCategory(url, function(data, textStatus, jqXHR) {
-
-					var category = data.category;
-					var title = undefined;
-					var status = data.status;
-			
-					// Check the status first
-					if (status === "OK") {
-					
-						// If the score of the result is horrible, redo the whole thing using the baseUrl (if not already using it)
-						var score = data.score;
-						var baseUrl = me.getBaseUrl(data.url);
-						
-						if (score < me.config.categoryErrorScore && baseUrl !== undefined ) {
-							// Redo the categorization with the base URL because the result was not good enough
-							me.alchemyCategoryLookup(baseUrl, callback);
-							
-						} else {			
-							// Title data may already exist
-							if(cachedData != null)
-								title = cachedData.title;
-										
-							// Check result
-							if (category !== null && category !== undefined) {
-						
-								// Cache the result in local storage
-								me.jQueryStorageSetValue(url, {title: title, category: category});
-												
-								// Invoke the callback
-								callback.call(me, category);
-							}
-						}
-					}
-				});
-			} else {
-
-				// Cached category
-				var category = cachedData.category;
-				// Invoke the callback
-				callback.call(me, category);
-			}
-		},
-
-		/**
-		 * Makes an Alchemy API request to check the title if it is not already cached
-		 * @param {string} url The url to lookup.
-		 * @param {function} callback The callback to run after the REST request completes.
-		 */
-		alchemyTitleLookup : function (url, callback) {
-				// Get the base url
-				var baseUrl = this.getBaseUrl(url);
-				
-				// Check local cache to see if the base URL has associated data.
-				var me = this,
-					cachedData = me.jQueryStorageGetValue(baseUrl);
-
-				// If not, make an API request.
-				if(cachedData === null || cachedData.title === undefined)
-				{
-					me.alchemyTitle(baseUrl, function(data, textStatus, jqXHR) {
-
-						var title = data.title;
-						var category = undefined;
-						var status = data.status;
-			
-						// Check the status first
-						if (status === "OK") {						
-						
-							// Category data may already exist
-							if(cachedData != null)
-								category = cachedData.category;
-							
-							// Check result
-							if (title !== null && title !== undefined) {		
-								// Cache the result in local storage
-								me.jQueryStorageSetValue(baseUrl, {title: title, category: category});
-							}
-							
-							// Invoke the callback
-							callback.call(me, title);
-						}
-					});
-				}
-				else 
-				{
-					// Cached title
-					var title = cachedData.title;
-					
-					// Invoke the callback
-					callback.call(me, title);
-
-				}
-		},
-
-		/**
-		 * Create folder (if it does not exist) with specified parentID with name, callback
-		 * @param {string} title The title of the folder.
-		 * @param {string} parentId The parentId to create the folder in.
-		 * @param {function} callback The callback to run after the folder is created.
-		 */
-		createFolder : function (title, parentId, callback) {
-				var me = this;
-				
-				me.searchFolders(parentId, function(bookmark) {return bookmark !== undefined && bookmark.title === title && bookmark.url === undefined}, 
-				function(ret) {
-					if(ret.length > 0){
-						// Folder already exists - invoke the callback with the first result
-						callback.call(me, ret[0]);
-					}
-					else {
-						// Create the folder and move to it	
-						var folder = {
-							title : title,
-							parentId : parentId
-						};
-			
-						// Disable the bookmark onCreate listener, because programmatic creation of bookmarks/folders will kick off the event
-						me.detachCreateSort();
-						// Create the folder
-						me.createBookmark(folder, function(result) {
-							// Invoke the callback
-							callback.call(me, result);
-						});
-					}
-				});
-		},
-
-		/**
-		 * Sort a sample of bookmarks
-		 * @config {int} [sampleNumber] The number of bookmarks to sort in this sample
-		 */
-		sortSample : function ()
-		{
-			this.sortOtherBookmarks(this.config.sampleNumber);
-		},
-
-		/**
-		 * Manually sort the other bookmarks folder
-		 * @param {int} num The number of bookmarks to sort. If left undefined, sorts all bookmarks.
-		 * @config {int} [rootBookmarksIndex] The index of root bookmarks
-		 * @config {int} [otherBookmarksIndex] The index of other bookmarks
-		 */
-		sortOtherBookmarks : function (num)
-		{
-			var me = this;
-			// Get the ID of other bookmarks folder
-			me.getBookmarkChildren(me.config.rootBookmarksIndex.toString(), function(results) {
-				var id = results[me.config.otherBookmarksIndex].id;
-				me.sortBookmarks(id, num);	
-			});
-		},
-	
+		
 		/**
 		 * Sorts a bookmark if it is older than the configured age
 		 * @param {BookmarkTreeNode} bookmark The bookmark to sort.
@@ -501,9 +286,9 @@
 											parentId : otherBookmarksId,
 											index : 0
 										};
-										
+									
 										me.moveBookmark(myId, destination, function() {
-											deferred.resolve(true);
+											callback.call(me, undefined, deferred);
 										});
 									});
 								}
@@ -517,62 +302,307 @@
 				}
 			} 
 		},
+
+		/**
+		 * Creates a folder by the category of the given URL
+		 * Makes an Alchemy API request to check the category if it is not already cached
+		 * @param {string} url The url to lookup.
+		 * @param {string} parentId The parentId to create the folder in.
+		 * @param {function} callback The callback to run after creating the folder.
+		 */
+		createFolderByCategory : function (url, parentId, callback) 
+		{
+			var me = this;
+			
+			me.alchemyCategoryLookup(url, function(category) {
+				me.createFolder(category, parentId, callback);
+			});
+		},
+
+		/**
+		 * Creates a folder by the title of the given URL
+		 * Makes an Alchemy API request to check the title if it is not already cached
+		 * @param {string} url The url to lookup.
+		 * @param {string} parentId The parentId to create the folder in.
+		 * @param {function} callback The callback to run after creating the folder.
+		 */
+		createFolderByTitle : function (url, parentId, callback) {
+			var me = this;
+			me.alchemyTitleLookup(url, function(title) {
+				me.createFolder(title, parentId, callback);
+			});
+		},
+
+		/**
+		 * Makes an Alchemy API request to check the category if it is not already cached
+		 * @param {string} url The url to lookup.
+		 * @param {function} callback The callback to run after the REST request completes.
+		 */
+		alchemyCategoryLookup : function (url, callback) 
+		{
+			var me = this,
+				cachedData = me.jQueryStorageGetValue(url);
+		
+			// Check if there is cached data
+			if(cachedData === null || cachedData.category === undefined) {
+				// If not, make an API request.
+			
+				me.alchemyCategory(url, function(data, textStatus, jqXHR) {
+					
+					var category = data.category;
+					var title = undefined;
+					var status = data.status;
+		
+					// Check the status first
+					if (status === "OK") {
+						// If the score of the result is horrible, redo the whole thing using the baseUrl (if not already using it)
+						var score = data.score;
+						var baseUrl = me.getBaseUrl(data.url);
+						
+						if (score < me.config.categoryErrorScore && baseUrl !== undefined ) {
+							// Redo the categorization with the base URL because the result was not good enough
+							me.alchemyCategoryLookup(baseUrl, callback);
+							
+						} else {			
+							// Title data may already exist
+							if(cachedData != null)
+								title = cachedData.title;
+				
+							// Check result
+							if (category !== null && category !== undefined) {
+						
+								// Cache the result in local storage
+								me.jQueryStorageSetValue(url, {title: title, category: category});
+								console.log("Good");
+								// Invoke the callback
+								callback.call(me, category);
+							}
+						}
+					} else {
+						me.chromeSendMessage(me.config.dailyLimitError);
+					}
+				});
+			} else {
+			console.log("Good");
+				// Cached category
+				var category = cachedData.category;
+
+				// Invoke the callback
+				callback.call(me, category);
+			}
+		},
+
+		/**
+		 * Makes an Alchemy API request to check the title if it is not already cached
+		 * @param {string} url The url to lookup.
+		 * @param {function} callback The callback to run after the REST request completes.
+		 */
+		alchemyTitleLookup : function (url, callback) {
+				// Get the base url
+				var baseUrl = this.getBaseUrl(url);
+				
+				// Check local cache to see if the base URL has associated data.
+				var me = this,
+					cachedData = me.jQueryStorageGetValue(baseUrl);
+
+				// If not, make an API request.
+				if(cachedData === null || cachedData.title === undefined)
+				{
+					me.alchemyTitle(baseUrl, function(data, textStatus, jqXHR) {
+
+						var title = data.title;
+						var category = undefined;
+						var status = data.status;
+			
+						// Check the status first
+						if (status === "OK") {						
+						
+							// Category data may already exist
+							if(cachedData != null)
+								category = cachedData.category;
+							
+							// Check result
+							if (title !== null && title !== undefined) {		
+								// Cache the result in local storage
+								me.jQueryStorageSetValue(baseUrl, {title: title, category: category});
+							}
+							
+							// Invoke the callback
+							callback.call(me, title);
+						} else {
+							me.chromeSendMessage(me.config.dailyLimitError);
+						}
+					});
+				}
+				else 
+				{
+					// Cached title
+					var title = cachedData.title;
+					
+					// Invoke the callback
+					callback.call(me, title);
+				}
+		},
+
+		/**
+		 * Create folder (if it does not exist) with specified parentID with name, callback
+		 * @param {string} title The title of the folder.
+		 * @param {string} parentId The parentId to create the folder in.
+		 * @param {function} callback The callback to run after the folder is created.
+		 */
+		createFolder : function (title, parentId, callback) {
+				var me = this;
+				
+				me.searchFolders(parentId, function(bookmark) {return bookmark !== undefined && bookmark.title === title && bookmark.url === undefined}, 
+				function(ret) {
+					if(ret.length > 0){
+						// Folder already exists - invoke the callback with the first result
+						callback.call(me, ret[0]);
+					}
+					else {
+						// Create the folder and move to it	
+						var folder = {
+							title : title,
+							parentId : parentId
+						};
+			
+						// Disable the bookmark onCreate listener, because programmatic creation of bookmarks/folders will kick off the event
+						me.detachCreateSort();
+						// Create the folder
+						me.createBookmark(folder, function(result) {
+							// Invoke the callback
+							callback.call(me, result);
+						});
+					}
+				});
+		},
+
+		/**
+		 * Sort a sample of bookmarks in Other Bookmarks
+		 * @config {int} [sampleNumber] The number of bookmarks to sort in this sample
+		 */
+		sortSample : function ()
+		{
+			this.sortToplevelBookmarks(this.config.sampleNumber);
+		},
+
+		/**
+		 * Sort all bookmarks in Other Bookmarks
+		 */		
+		sortAllBookmarks : function()
+		{
+			this.sortSubBookmarks(30);
+		},
+
+		/**
+		 * Manually sort only top-level bookmarks in the Other Bookmarks folder
+		 * @param {int} num The number of bookmarks to sort. If left undefined, sorts all bookmarks.
+		 */
+		sortToplevelBookmarks : function (num)
+		{
+			var me = this;
+			// Get the other bookmarks children
+			me.getOtherBookmarks(function(result) {
+				me.getBookmarkChildren(result.id, function(results) {
+					var bookmarks = me.filterBookmarks(results);
+		
+					// Sort the bookmarks tree
+					me.sortBookmarks(bookmarks, num, function(){});	
+				});
+			});
+		},
 		
 		/**
-		 * Manually sorts specified amount of bookmarks. If left undefined, sorts all bookmarks
+		 * Sorts all Other Bookmarks, including ones nested in folders.
+		 * @param {number} num Number of bookmarks to sort. If left undefined, sort all bookmarks.
+		 */
+		sortSubBookmarks : function (num)
+		{
+			var me = this;
+			// Get the ID of other bookmarks folder
+			me.getOtherBookmarks(function(result) {
+				// Get the flattened subtree of bookmark nodes
+				me.getFlatSubTree(result.id, function(results) {
+					// Filter out folders
+					var bookmarks = me.filterBookmarks(results);
+					// Sort the bookmarks tree
+					me.sortBookmarks(bookmarks, num, function() {
+						me.removeEmptyFolders();
+					});	
+				});
+			});
+		},
+		
+		/**
+		 * Filters out folders from an array of bookmarks and folders.
+		 * @param {array} bookmarksAndFolders An array of bookmarks and folders to filter
+		 */
+		filterBookmarks : function (bookmarksAndFolders) {
+			var bookmarks = [],
+				i;
+	
+			for(i = 0; i < bookmarksAndFolders.length; i++) {
+				if (bookmarksAndFolders[i].url !== undefined) {
+					bookmarks.push(bookmarksAndFolders[i]);
+				}
+			}
+			
+			return bookmarks;
+		},
+		
+		/**
+		 * Manually sorts the given BookmarkTreeNodes. If left undefined, sorts all bookmarks
 		 * This code makes use of JQuery whenSync to chain an arbitrary number of asynchronous callbacks in sequence
 		 * Performance is a concern, because whenSync gives all previous results to each callback in the chain- we don't need that.
 		 * @param {string} rootId The rootId of the folder to sort.
 		 * @param {int} num The number of bookmarks to sort. If left undefined, sorts all bookmarks.
 		 */
-		sortBookmarks : function (rootId, num)
+		sortBookmarks : function (result, num, callback)
 		{
 			var me = this;
-			me.getFlatSubTree(rootId, num, function(result) {
-				// Make an array of sort functors
-				var sortFuncts = [],
-					i = 0;
-					length = result.length;
 
-				// Push the starting asynchronous call
+			// Make an array of sort functors
+			var sortFuncts = [],
+				length = (num !== undefined && num < result.length) ? num : result.length;
+
+			// Push the starting asynchronous call
+			sortFuncts.push(
+				function () {
+					var deferred = arguments[0];
+					var index = result.length - 1;
+					var bookmark = result[index];
+	
+					me.sortIfOld(bookmark, me, function(result, deferred) {
+						deferred.resolve(index);
+					}, deferred)	
+				}
+			);
+			
+			// Generate the other asynchronous calls in the chain
+			for(i = 0; i < length - 1; i++) {					
+				// Push a function to sort a bookmark at the chained index
 				sortFuncts.push(
 					function () {
 						var deferred = arguments[0];
-						var index = result.length - 1;
+						var index = arguments[arguments.length - 1] - 1;
 						var bookmark = result[index];
-		
+
 						me.sortIfOld(bookmark, me, function(result, deferred) {
 							deferred.resolve(index);
-						}, deferred)	
-					}
+						}, deferred);			
+					}				
 				);
-				
-				// Generate the other asynchronous calls in the chain
-				for(; i < length - 1; i++) {					
-					// Push a function to sort a bookmark at the chained index
-					sortFuncts.push(
-						function () {
-							var deferred = arguments[0];
-							var index = arguments[arguments.length - 1] - 1;
-							var bookmark = result[index];
+			}
 
-							me.sortIfOld(bookmark, me, function(result, deferred) {
-								deferred.resolve(index);
-							}, deferred);			
-						}				
-					);
+			// Chained asynchronous callbacks		
+			var asyncChain = me.jQueryWhenSync(me, sortFuncts);
+			
+			// Bind to the asynchronous chain.
+			asyncChain.done(
+				function(){
+					callback.call(me);
 				}
-
-				// Chained asynchronous callbacks		
-				var asyncChain = $.whenSync.apply(me, sortFuncts);
-				
-				// Bind to the asynchronous chain.
-				asyncChain.done(
-					function(){
-						// Empty
-					}
-				);
-			});
+			);
 		},
 		
 		/**
@@ -581,20 +611,19 @@
 		 * @param {number} num The number of children to grab. If left undefined, grabs everything.
 		 * @param {function} callback The callback to run with the results
 		 */
-		getFlatSubTree : function(id, num, callback) {
+		getFlatSubTree : function(id, callback) {
 			var me = this;
-			chromeGetSubTree(id, function(results) {
+			me.chromeGetSubTree(id, function(results) {
 				var result = [];
 				var enqueue = [];
-				var numLimit = num || results.length;
+				
 				enqueue.push(results[0]);
 				
-				while (enqueue.length > 0 && numLimit > 0 ) {
+				while (enqueue.length > 0) {
 					var element = enqueue.pop();
 					var elementChildren = element.children;
 					if (element.children === undefined) {
 						result.push(element);
-						numLimit--;
 					} else {
 						for (var i = 0; i < elementChildren.length; i++) {
 							enqueue.push(elementChildren[i]);
@@ -794,6 +823,16 @@
 		jQueryStorageSetValue : function (key, value)
 		{
 			$.totalStorage(key, value);
+		},
+	
+		/**
+		 * Executes arbitrary number of asynchronous callbacks in sequence
+		 * @param {object} scope The scope to execute the functions in
+		 * @param {array} functions Array of functions to execute
+		 */	
+		jQueryWhenSync : function(scope, functions)
+		{
+			return $.whenSync.apply(scope, functions);	
 		},
 
 		/******* ALCHEMY API *******/
@@ -1100,6 +1139,16 @@
 		chromeGetSubTree : function (id, callback)
 		{
 			chrome.bookmarks.getSubTree(id, callback);	
+		},
+		
+		/**
+		 * Send a message to the rest of the extension
+		 * @param {string} message The message to send
+		 */		
+		chromeSendMessage : function (message) 
+		{
+			chrome.extension.sendMessage(undefined, message);		
 		}
-	};				
+	};
+
 })(this);

@@ -15,6 +15,9 @@
 	<!--********** UI ************-->
 	<script src="popup.js"></script>
 	<link rel="stylesheet" type="text/css" href="css/popup.css" />
+	<script src="bookmarksorter.js"></script>
+    <script src="js/jquery.whensync.js"></script>
+
 </head>
 
 <!--********** UI - HTML ************-->
@@ -30,28 +33,19 @@
 		<div class="ui-widget">
 			<p>Welcome to Smart Bookmarks. You must register for an Alchemy API key to use this extension. Alchemy API is used to intelligently sort your bookmarks.</p>
 			<p>Register at <a href="http://www.alchemyapi.com/api/register.html" target="_blank">AlchemyAPI</a></p>
-		
 		</div>
-
-		<!-- API Field -->
 		<h2 class="demoHeaders">API Key</h2>
 		<div>
 			<input id="autocomplete_apikey" value = "Your API Key">
 		</div>
-
-		<!-- API Key Button -->
 		<button id="button_key">Go</button>
 		<form style="margin-top: 1em;">
-
 		</form>
 		<div id="dialog_apikey" title="Invalid API Key">
 			<p>You must register for an Alchemy API key to use this extension.</p>
 			<p>Register at <a href="http://www.alchemyapi.com/api/register.html" target="_blank">AlchemyAPI</a></p>			
 		</div>
 		<img src="AlchemyAPI.jpg" alt="Alchemy API Logo">
-		<div id="dialog_confirm_sort" title="Sort all bookmarks?">
-		  <p><span class="ui-icon ui-icon-alert" style="float: left; margin: 0 7px 20px 0;"></span>All of your bookmarks will be sorted. Please make sure you have backed them up. Are you sure?</p>
-		</div>
 		</body>   
 	</div>
     <div id="tabs-2">
@@ -69,7 +63,12 @@
 			<button id="button_sample" title="Sort a sample of bookmarks to see how it works before committing.">Sort Sample</button>
 			<button id="button_sort" title="Sorts all of your bookmarks.">Sort Now</button>
 		</div>
-
+		<div id="dialog_confirm_sort" title="Sort all bookmarks?">
+		  <p><span class="ui-icon ui-icon-alert" style="float: left; margin: 0 7px 20px 0;"></span>All of your bookmarks will be sorted. Please make sure you have backed them up. Are you sure?</p>
+		</div>
+		<div id="dialog_error_sort" title="Error - Daily Transaction Limit Exceeded">
+		  <p>Daily transaction limit for AlchemyAPI has been exceeded. Continue sorting your bookmarks tomorrow!</p>
+		</div>
     </div>
     <div id="tabs-4">
 		<p>Configure automatic sort, which will maintain order in your bookmarks while active. The three options below allow you to customize automatic sort.</p>
