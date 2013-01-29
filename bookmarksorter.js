@@ -182,17 +182,16 @@
 		intervalAlarm : function (alarm)
 		{
 			// Get the local counter or start it at 0
-			var me = this,
-				SBS = me.SmartBookmarkSorter;
-				counterKey = SBS.config.indexCounter,
-				counterValue = SBS.jQueryStorageGetValue(counterKey) || 0;
-
+			var me = this.SmartBookmarkSorter,
+				counterKey = me.config.indexCounter,
+				counterValue = me.jQueryStorageGetValue(counterKey) || 0;
+			console.log("Interval alarm - ", counterValue);
 			// Get the ID of other bookmarks folder
-			SBS.getBookmarkChildren(SBS.config.rootBookmarksIndex.toString(), function(results) {
-				var otherBookmarksId = results[SBS.config.otherBookmarksIndex].id;
+			me.getBookmarkChildren(me.config.rootBookmarksIndex.toString(), function(results) {
+				var otherBookmarksId = results[me.config.otherBookmarksIndex].id;
 
 				// Get the children of other Bookmarks
-				SBS.getBookmarkChildren(otherBookmarksId, function(results) {
+				me.getBookmarkChildren(otherBookmarksId, function(results) {
 					// Get the bookmark at the current index
 					var bookmark = results[counterValue];
 					
@@ -201,13 +200,14 @@
 						var title = bookmark.title;
 						var url = bookmark.url;
 						var myId = bookmark.id;
-						var baseUrl = SBS.getBaseUrl(url);
+						var baseUrl = me.getBaseUrl(url);
 
 						// Could be a folder
 						if(url !== undefined)
 						{
 							// Sort the bookmark if it's older than the configured amount
-							SBS.sortIfOld(bookmark, me, function(){}, undefined);
+							console.log("Sorting ", bookmark);
+							me.sortIfOld(bookmark, me, function(){}, undefined);
 						}
 					}	
 					// Otherwise, do nothing.
@@ -215,7 +215,7 @@
 					// Set the counter to the next index, or 0 if it is the tail
 					var incCounter = counterValue < results.length ? counterValue + 1 : 0;
 
-					SBS.jQueryStorageSetValue(counterKey, incCounter);
+					me.jQueryStorageSetValue(counterKey, incCounter);
 				});
 			});
 		},
@@ -518,7 +518,7 @@
 		 */		
 		sortAllBookmarks : function()
 		{
-			this.sortSubBookmarks(20);
+			this.sortSubBookmarks(undefined);
 		},
 
 		/**
