@@ -2,7 +2,7 @@
 <html lang="us">
 <head>
 	<meta charset="utf-8">
-	<title>SmartSort</title>
+	<title>Smart Bookmark Sorter</title>
 	
 	<!--********** JQuery ************-->
 	<script src="js/jquery-1.8.3.js"></script>
@@ -11,17 +11,13 @@
 	
 	<!--********** JQuery Plugins************-->
     <script src="js/jquery.total-storage.js"></script>
-	
+
 	<!--********** UI ************-->
 	<script src="popup.js"></script>
 	<link rel="stylesheet" type="text/css" href="css/popup.css" />
-	
-		<script src="bookmarksorter.js"></script>
-
 </head>
 
 <!--********** UI - HTML ************-->
-<h1> Smart Bookmarks </h1>
 <div id="tabs" >
     <ul>
         <li><a href="#tabs-1">Register</a></li>
@@ -34,28 +30,19 @@
 		<div class="ui-widget">
 			<p>Welcome to Smart Bookmarks. You must register for an Alchemy API key to use this extension. Alchemy API is used to intelligently sort your bookmarks.</p>
 			<p>Register at <a href="http://www.alchemyapi.com/api/register.html" target="_blank">AlchemyAPI</a></p>
-		
 		</div>
-
-		<!-- API Field -->
 		<h2 class="demoHeaders">API Key</h2>
 		<div>
 			<input id="autocomplete_apikey" value = "Your API Key">
 		</div>
-
-		<!-- API Key Button -->
 		<button id="button_key">Go</button>
 		<form style="margin-top: 1em;">
-
 		</form>
 		<div id="dialog_apikey" title="Invalid API Key">
 			<p>You must register for an Alchemy API key to use this extension.</p>
 			<p>Register at <a href="http://www.alchemyapi.com/api/register.html" target="_blank">AlchemyAPI</a></p>			
 		</div>
 		<img src="AlchemyAPI.jpg" alt="Alchemy API Logo">
-		<div id="dialog_confirm_sort" title="Sort all bookmarks?">
-		  <p><span class="ui-icon ui-icon-alert" style="float: left; margin: 0 7px 20px 0;"></span>All of your bookmarks will be sorted. Please make sure you have backed them up. Are you sure?</p>
-		</div>
 		</body>   
 	</div>
     <div id="tabs-2">
@@ -64,30 +51,35 @@
 		<button id="button_continue">Continue</button>
     </div>
     <div id="tabs-3">
-		<p>This will sort all your bookmarks. Please make sure you have backed up your bookmarks before proceeding!</p>
+		<p>This will sort all your Other Bookmarks into folders by category and title. Please make sure you have backed up your bookmarks before proceeding!</p>
 		<p>
-		  <label for="spinner_archivedays">Archive bookmarks older than:</label>
-		  <input id="spinner_archivedays" name="value" title="Bookmarks older than this amount will be sorted into Category folders." /> days
+		  <label for="spinner_archivedays">Sort bookmarks older than:</label>
+		  <input id="spinner_archivedays" name="value" title="Bookmarks older than this amount will be sorted." /> days
 		</p>
 		<div id="container" style="width:500px">
 			<button id="button_sample" title="Sort a sample of bookmarks to see how it works before committing.">Sort Sample</button>
 			<button id="button_sort" title="Sorts all of your bookmarks.">Sort Now</button>
 		</div>
-
+		<div id="dialog_confirm_sort" title="Sort all bookmarks?">
+		  <p><span class="ui-icon ui-icon-alert" style="float: left; margin: 0 7px 20px 0;"></span>All of your bookmarks will be sorted. Please make sure you have backed them up. Are you sure?</p>
+		</div>
+		<div id="dialog_error_sort" title="Error - Daily Transaction Limit Exceeded">
+		  <p>Daily transaction limit for AlchemyAPI has been exceeded. Continue sorting your bookmarks tomorrow!</p>
+		</div>
     </div>
     <div id="tabs-4">
 		<p>Configure automatic sort, which will maintain order in your bookmarks while active. The three options below allow you to customize automatic sort.</p>
 		<div id="container" style="width:500px">
 			<input type="checkbox" id="button_oncreate"/>
-			<label for="button_oncreate" title="Will sort bookmarks as they are created into appropriate Title folders.">Sort on Bookmark Event</label>
+			<label for="button_oncreate" title="Will sort bookmarks as they are created.">Sort on Bookmark Event</label>
 			<input type="checkbox" id="button_interval"/>
-			<label for="button_interval" title="Will archive older bookmarks on a timed interval.">Sort on Timed Interval</label>
+			<label for="button_interval" title="Will sort older bookmarks on a timed interval.">Sort on Timed Interval</label>
+			<label for="button_prioritize" title="Will move accessed bookmarks to the top of the list.">Prioritize Bookmarks</label>
 			<input type="checkbox" id="button_prioritize"/>
-			<label for="button_prioritize" title="Will move frequently accessed bookmarks to the top of the list.">Prioritize Bookmarks</label>
 		</div>
 		<p>Enable and disable automatic sorting below.</p>
 		<input type="checkbox" id="button_autosort"/>
-		<label for="button_autosort" title="Toggles automatic sort.">Automatic Sort</label>
+		<label for="button_autosort" title="Enables or disables automatic sort. You must toggle me to refresh settings changed above.">Automatic Sort</label>
     </div>
 </div>
 
