@@ -34,7 +34,7 @@
 			rootBookmarksIndex : 		0,
 			otherBookmarksIndex : 		1,
 			sampleNumber : 				5,
-			categoryErrorScore :		.7,
+			categoryErrorScore :		.5,
 			unsortedFolderName :		"unsorted",
 			dailyLimitError : 			"daily-transaction-limit-exceeded",
 			domainError : 				"cannot-resolve-dns",
@@ -366,8 +366,9 @@
 						// If the score of the result is horrible, redo the whole thing using the baseUrl (if not already using it)
 						var score = data.score;
 
-						if (score < me.config.categoryErrorScore && baseUrl !== undefined ) {
+						if (score < me.config.categoryErrorScore && baseUrl !== url ) {
 							// Redo the categorization with the base URL because the result was not good enough
+							console.log("*** REDOING CAT ON SCORE *** with baseUrl = ", baseUrl);
 							me.alchemyCategoryLookup(baseUrl, callback);
 							
 						} else {			
@@ -391,8 +392,9 @@
 						if(statusInfo == me.config.dailyLimitError) {
 							// Daily limit reached must stop the chain
 							me.chromeSendMessage(me.config.dailyLimitError);
-						} else if (baseUrl !== undefined) {
+						} else if (baseUrl !== url) {
 							// Otherwise the page isn't HTML- fall back on the base URL.
+							console.log("*** REDOING CAT ON ERROR *** with baseUrl = ", baseUrl);
 							me.alchemyCategoryLookup(baseUrl, callback);						
 						} else {
 							// Cannot read this page- resolve with Unsorted
@@ -450,9 +452,10 @@
 							console.log("ERROR CAT = ", data);
 							if(statusInfo == me.config.dailyLimitError) {
 								// Daily limit reached must stop the chain
+							} else if (baseUrl !== url) {
 								me.chromeSendMessage(me.config.dailyLimitError);
-							} else if (baseUrl !== undefined) {
 								// Otherwise the page isn't HTML- fall back on the base URL.
+								console.log("*** REDOING TITLE ON ERROR *** with baseUrl = ", baseUrl);
 								me.alchemyTitleLookup(baseUrl, callback);						
 							} else {
 								// Cannot read this page- resolve with Unsorted
@@ -789,15 +792,11 @@
 		 * @returns {string}
 		 */
 		getBaseUrl : function (url)
-		{
-			pathArray = String(url).split( '/' ); 
-			host = pathArray[2];
-			if (host === undefined) {
-				return host;
-			}
-			else {
-				return "http://" + host;
-			}
+		{	
+			var urlObj = $.url(url);
+			var host = urlObj.attr('host');
+			var protocol = urlObj.attr('protocol');
+			return protocol + '://' + host;
 		},
 
 		/**
