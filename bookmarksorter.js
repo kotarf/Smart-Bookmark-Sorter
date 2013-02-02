@@ -34,12 +34,13 @@
 			rootBookmarksIndex : 		0,
 			otherBookmarksIndex : 		1,
 			sampleNumber : 				5,
-			categoryErrorScore :		.7,
+			categoryErrorScore :		.5,
 			unsortedFolderName :		"unsorted",
+			okStatus : 					"OK",
 			dailyLimitError : 			"daily-transaction-limit-exceeded",
-			domainError : 				"cannot-resolve-dns",
-			timeoutError :				"operation-timeout",
-			okStatus : 					"OK"
+			sortBeginMsg :				"sortBegin",
+			sortSuccessfulMsg : 		"sortSuccessful",
+			sortCompleteMsg : 			"sortComplete"		
 		},
 
 		/**
@@ -283,7 +284,6 @@
 									me.sortBookmark(bookmark, callback, deferred);
 								} else {
 									// Move the bookmark to the top of other bookmarks
-									// Move it to the top of other bookmarks
 									me.getOtherBookmarks(function(result) {
 
 										var otherBookmarksId = result.id;
@@ -366,8 +366,9 @@
 						// If the score of the result is horrible, redo the whole thing using the baseUrl (if not already using it)
 						var score = data.score;
 
-						if (score < me.config.categoryErrorScore && baseUrl !== undefined ) {
+						if (score < me.config.categoryErrorScore && baseUrl !== url ) {
 							// Redo the categorization with the base URL because the result was not good enough
+							console.log("*** REDOING CAT ON SCORE *** with baseUrl = ", baseUrl);
 							me.alchemyCategoryLookup(baseUrl, callback);
 							
 						} else {			
@@ -391,8 +392,9 @@
 						if(statusInfo == me.config.dailyLimitError) {
 							// Daily limit reached must stop the chain
 							me.chromeSendMessage(me.config.dailyLimitError);
-						} else if (baseUrl !== undefined) {
+						} else if (baseUrl !== url) {
 							// Otherwise the page isn't HTML- fall back on the base URL.
+							console.log("*** REDOING CAT ON ERROR *** with baseUrl = ", baseUrl);
 							me.alchemyCategoryLookup(baseUrl, callback);						
 						} else {
 							// Cannot read this page- resolve with Unsorted
@@ -450,9 +452,10 @@
 							console.log("ERROR CAT = ", data);
 							if(statusInfo == me.config.dailyLimitError) {
 								// Daily limit reached must stop the chain
+							} else if (baseUrl !== url) {
 								me.chromeSendMessage(me.config.dailyLimitError);
-							} else if (baseUrl !== undefined) {
 								// Otherwise the page isn't HTML- fall back on the base URL.
+								console.log("*** REDOING TITLE ON ERROR *** with baseUrl = ", baseUrl);
 								me.alchemyTitleLookup(baseUrl, callback);						
 							} else {
 								// Cannot read this page- resolve with Unsorted
@@ -583,6 +586,9 @@
 		 * Performance is a concern, because whenSync gives all previous results to each callback in the chain- we don't need that.
 		 * @param {string} rootId The rootId of the folder to sort.
 		 * @param {int} num The number of bookmarks to sort. If left undefined, sorts all bookmarks.
+		 * @config {string} sortBeginMsg Successful message code sent to UI
+		 * @config {string} sortSuccessfulMsg Successful message code sent to UI
+		 * @config {string} sortCompleteMsg Successful message code sent to UI		 
 		 */
 		sortBookmarks : function (result, num, callback)
 		{
@@ -600,6 +606,10 @@
 					var bookmark = result[index];
 	
 					me.sortIfOld(bookmark, me, function(result, deferred) {
+						// Send a message to the UI saying how many bookmarks we will sort
+						me.chromeSendMessage(SmartBookmarkSorter.config.sortBeginMsg + "," + length);
+
+						// Resolve the deferred object, allowing the chain to continue
 						deferred.resolve(index);
 					}, deferred)	
 				}
@@ -615,6 +625,10 @@
 						var bookmark = result[index];
 
 						me.sortIfOld(bookmark, me, function(result, deferred) {
+							// Send a message to the UI saying there was a successful conversion
+							me.chromeSendMessage(SmartBookmarkSorter.config.sortSuccessfulMsg);
+
+							// Resolve the deferred object, allowing the chain to continue
 							deferred.resolve(index);
 						}, deferred);			
 					}				
@@ -627,6 +641,10 @@
 			// Bind to the asynchronous chain.
 			asyncChain.done(
 				function(){
+					// Send a message to the UI saying we're done
+					me.chromeSendMessage(SmartBookmarkSorter.config.sortCompleteMsg);
+					
+					// Execute the completion callback
 					callback.call(me);
 				}
 			);
@@ -789,15 +807,11 @@
 		 * @returns {string}
 		 */
 		getBaseUrl : function (url)
-		{
-			pathArray = String(url).split( '/' ); 
-			host = pathArray[2];
-			if (host === undefined) {
-				return host;
-			}
-			else {
-				return "http://" + host;
-			}
+		{	
+			var urlObj = $.url(url);
+			var host = urlObj.attr('host');
+			var protocol = urlObj.attr('protocol');
+			return protocol + '://' + host;
 		},
 
 		/**
@@ -1183,3 +1197,4 @@
 		}
 	};
 })(this);
+// Copyright 2013 Frank Kotarski

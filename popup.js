@@ -82,6 +82,10 @@ $(function() {
 	
 	$( "#spinner_archivedays" ).spinner( "value", oldBookmarkDays);
 	
+	$( "#progressbar_sorting" ).progressbar({
+		value: 0
+	});
+	
 	$( "#button_sample").button().click(function() {
 		// Sort a sample of bookmarks
 		background_page.SmartBookmarkSorter.sortSample();
@@ -191,11 +195,33 @@ $(function() {
 		$("#button_autosort").button("refresh");	
 	}
 	
-	// Add listeners for error messages
+	// Add listeners for error messages and progress messages
 	chrome.extension.onMessage.addListener(function(message, sender, sendResponse) {
-		if(message == background_page.SmartBookmarkSorter.config.dailyLimitError) {
+		var messageSplit = message.split(",");
+		var messageCode = messageSplit[0];
+		if(messageCode == background_page.SmartBookmarkSorter.config.dailyLimitError) {
 			// Display an error dialog
 			$( "#dialog_error_sort" ).dialog( "open" );			
+		}
+		else if(messageCode == "sortBegin") {
+			var numSorts = parseInt(messageSplit[1]);
+			console.log("NUMSORTS = ", numSorts);
+			$( "#progressbar_sorting" ).progressbar( "option", "value", 0);		
+			$( "#progressbar_sorting" ).progressbar( "option", "max", numSorts );			
+		}
+		else if(messageCode == "sortSuccessful") {
+			// getter
+			var value = $( "#progressbar_sorting").progressbar( "option", "value" );
+			 
+			// setter
+			$( "#progressbar_sorting" ).progressbar( "option", "value", value + 1 );		
+		}
+		else if(messageCode == "sortComplete") {
+			// getter
+			var value = $( "#progressbar_sorting").progressbar( "option", "value" );
+			 
+			// setter
+			$( "#progressbar_sorting" ).progressbar( "option", "value", value + 1 );
 		}
 	});
 
