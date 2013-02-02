@@ -36,10 +36,11 @@
 			sampleNumber : 				5,
 			categoryErrorScore :		.5,
 			unsortedFolderName :		"unsorted",
+			okStatus : 					"OK",
 			dailyLimitError : 			"daily-transaction-limit-exceeded",
-			domainError : 				"cannot-resolve-dns",
-			timeoutError :				"operation-timeout",
-			okStatus : 					"OK"
+			sortBeginMsg :				"sortBegin",
+			sortSuccessfulMsg : 		"sortSuccessful",
+			sortCompleteMsg : 			"sortComplete"		
 		},
 
 		/**
@@ -283,7 +284,6 @@
 									me.sortBookmark(bookmark, callback, deferred);
 								} else {
 									// Move the bookmark to the top of other bookmarks
-									// Move it to the top of other bookmarks
 									me.getOtherBookmarks(function(result) {
 
 										var otherBookmarksId = result.id;
@@ -586,6 +586,9 @@
 		 * Performance is a concern, because whenSync gives all previous results to each callback in the chain- we don't need that.
 		 * @param {string} rootId The rootId of the folder to sort.
 		 * @param {int} num The number of bookmarks to sort. If left undefined, sorts all bookmarks.
+		 * @config {string} sortBeginMsg Successful message code sent to UI
+		 * @config {string} sortSuccessfulMsg Successful message code sent to UI
+		 * @config {string} sortCompleteMsg Successful message code sent to UI		 
 		 */
 		sortBookmarks : function (result, num, callback)
 		{
@@ -603,6 +606,10 @@
 					var bookmark = result[index];
 	
 					me.sortIfOld(bookmark, me, function(result, deferred) {
+						// Send a message to the UI saying how many bookmarks we will sort
+						me.chromeSendMessage(SmartBookmarkSorter.config.sortBeginMsg + "," + length);
+
+						// Resolve the deferred object, allowing the chain to continue
 						deferred.resolve(index);
 					}, deferred)	
 				}
@@ -618,6 +625,10 @@
 						var bookmark = result[index];
 
 						me.sortIfOld(bookmark, me, function(result, deferred) {
+							// Send a message to the UI saying there was a successful conversion
+							me.chromeSendMessage(SmartBookmarkSorter.config.sortSuccessfulMsg);
+
+							// Resolve the deferred object, allowing the chain to continue
 							deferred.resolve(index);
 						}, deferred);			
 					}				
@@ -630,6 +641,10 @@
 			// Bind to the asynchronous chain.
 			asyncChain.done(
 				function(){
+					// Send a message to the UI saying we're done
+					me.chromeSendMessage(SmartBookmarkSorter.config.sortCompleteMsg);
+					
+					// Execute the completion callback
 					callback.call(me);
 				}
 			);
@@ -1182,3 +1197,4 @@
 		}
 	};
 })(this);
+// Copyright 2013 Frank Kotarski
