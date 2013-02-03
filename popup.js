@@ -199,24 +199,26 @@ $(function() {
 	chrome.extension.onMessage.addListener(function(message, sender, sendResponse) {
 		var messageSplit = message.split(",");
 		var messageCode = messageSplit[0];
-		if(messageCode == background_page.SmartBookmarkSorter.config.dailyLimitError) {
+		if(messageCode === background_page.SmartBookmarkSorter.config.dailyLimitError) {
 			// Display an error dialog
 			$( "#dialog_error_sort" ).dialog( "open" );			
 		}
-		else if(messageCode == "sortBegin") {
+		else if(messageCode === "sortBegin") {
 			var numSorts = parseInt(messageSplit[1]);
 			console.log("NUMSORTS = ", numSorts);
 			$( "#progressbar_sorting" ).progressbar( "option", "value", 0);		
 			$( "#progressbar_sorting" ).progressbar( "option", "max", numSorts );			
 		}
-		else if(messageCode == "sortSuccessful") {
+		else if(messageCode === "sortSuccessful") {
+			var indexSort = parseInt(messageSplit[1]);
+
 			// getter
 			var value = $( "#progressbar_sorting").progressbar( "option", "value" );
 			 
 			// setter
-			$( "#progressbar_sorting" ).progressbar( "option", "value", value + 1 );		
+			$( "#progressbar_sorting" ).progressbar( "option", "value", indexSort );		
 		}
-		else if(messageCode == "sortComplete") {
+		else if(messageCode === "sortComplete") {
 			// getter
 			var value = $( "#progressbar_sorting").progressbar( "option", "value" );
 			 
