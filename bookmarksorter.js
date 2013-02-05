@@ -36,6 +36,7 @@
 			sampleNumber : 				5,
 			categoryErrorScore :		.5,
 			unsortedFolderName :		"unsorted",
+			redoCode :					"_REDO", 
 			okStatus : 					"OK",
 			dailyLimitError : 			"daily-transaction-limit-exceeded",
 			sortBeginMsg :				"sortBegin",
@@ -368,21 +369,18 @@
 						if (score < me.config.categoryErrorScore && baseUrl !== url ) {
 							// Redo the categorization with the base URL because the result was not good enough
 							console.log("*** REDOING CAT ON SCORE *** with baseUrl = ", baseUrl);
+							
+							// Cache it as a redo
+							me.cacheCategory(cachedData, url, me.config.redoCode);
+							
 							me.alchemyCategoryLookup(baseUrl, callback);
 							
 						} else {			
-							// Title data may already exist
-							if(cachedData != null)
-								title = cachedData.title;
-				
-							// Check result
-							if (category !== null && category !== undefined) {
-								// Cache the result in local storage
-								me.jQueryStorageSetValue(url, {title: title, category: category});
+							// Cache the category
+							me.cacheCategory(cachedData, url, category);
 						
-								// Invoke the callback
-								callback.call(me, category);
-							}
+							// Invoke the callback
+							callback.call(me, category);
 						}
 					} else {
 						// Error handling
@@ -393,17 +391,16 @@
 						} else if (baseUrl !== url) {
 							// Otherwise the page isn't HTML- fall back on the base URL.
 							console.log("*** REDOING CAT ON ERROR *** with baseUrl = ", baseUrl);
+							// Cache the redo
+							me.cacheCategory(cachedData, url, me.config.redoCode);
+							// Redo
 							me.alchemyCategoryLookup(baseUrl, callback);						
 						} else {
 							// Cannot read this page- resolve with Unsorted after caching as unsorted
 							category = me.config.unsortedFolderName;
 							
-							// Title data may already exist
-							if(cachedData != null)
-								title = cachedData.title;
-				
-							// Cache the result in local storage
-							me.jQueryStorageSetValue(url, {title: title, category: category});
+							// Cache the category
+							me.cacheCategory(cachedData, url, category);
 						
 							// Invoke the callback
 							callback.call(me, category);
@@ -413,9 +410,14 @@
 			} else {
 				// Cached category
 				var category = cachedData.category;
-
-				// Invoke the callback
-				callback.call(me, category);
+				
+				// If a Redo is cached, call it with the baseUrl
+				if (category === me.config.redoCode) {
+					me.alchemyCategoryLookup(baseUrl, callback);
+				} else {
+					// Invoke the callback
+					callback.call(me, category);
+				}
 			}
 		},
 
@@ -444,16 +446,9 @@
 						// Check the status first
 						if (status === me.config.okStatus) {						
 						
-							// Category data may already exist
-							if(cachedData != null)
-								category = cachedData.category;
-							
-							// Check result
-							if (title !== null && title !== undefined) {		
-								// Cache the result in local storage
-								me.jQueryStorageSetValue(baseUrl, {title: title, category: category});
-							}
-							
+							// Cache the title
+							me.cacheTitle(cachedData, baseUrl, title);
+								
 							// Invoke the callback
 							callback.call(me, title);
 						} else {
@@ -465,17 +460,16 @@
 							} else if (baseUrl !== url) {
 								// Otherwise the page isn't HTML- fall back on the base URL.
 								console.log("*** REDOING TITLE ON ERROR *** with baseUrl = ", baseUrl);
+								// Cache the redo
+								me.cacheTitle(cachedData, baseUrl, me.config.redoCode);
+								// Redo
 								me.alchemyTitleLookup(baseUrl, callback);						
 							} else {
 								// Cannot read this page- resolve with Unsorted after caching as unsorted
 								title = me.config.unsortedFolderName;
 								
-								// Title data may already exist
-								if(cachedData != null)
-									category = cachedData.category;
-					
-								// Cache the result in local storage
-								me.jQueryStorageSetValue(baseUrl, {title: title, category: category});
+								// Cache the title
+								me.cacheTitle(cachedData, baseUrl, title);
 							
 								// Invoke the callback
 								callback.call(me, title);
@@ -488,9 +482,53 @@
 					// Cached title
 					var title = cachedData.title;
 					
-					// Invoke the callback
-					callback.call(me, title);
+					// Check if it is a redo
+					if (title ===  me.config.redoCode) {
+						me.alchemyTitleLookup(baseUrl, callback);
+					} else {							
+						// Invoke the callback
+						callback.call(me, title);
+					}
 				}
+		},
+		
+		/**
+		 * Store the title (value) by the url (key)
+		 * This could be refactored along with with half of my code
+		 * @param {object} cachedData The cachedData object that was retrieved
+		 * @param {string} url The url to store by
+		 * @param {string} title The title to store
+		 */
+		cacheTitle : function(cachedData, url, title) {
+			// Category data may already exist
+			var category = undefined, 
+				me = this;
+				
+			if(cachedData !== null) {
+				category = cachedData.category;
+			}
+			
+			// Cache the title in local storage
+			me.jQueryStorageSetValue(url, {title: title, category: category});			
+		},
+		
+		/**
+		 * Store the category (value) by the url (key)
+		 * @param {object} cachedData The cachedData object that was retrieved
+		 * @param {string} url The url to store by
+		 * @param {string} category The category to store
+		 */
+		cacheCategory : function(cachedData, url, category) {
+			// Title data may already exist
+			var title = undefined,
+				me = this;
+				
+			if(cachedData !== null) {
+				title = cachedData.title;
+			}
+			
+			// Cache the category in local storage
+			me.jQueryStorageSetValue(url, {title: title, category: category});		
 		},
 
 		/**
@@ -617,42 +655,27 @@
 			var sortFuncts = [],
 				length = (num !== undefined && num < result.length) ? num : result.length;
 
-			// Push the starting asynchronous call
-			sortFuncts.push(
-				function () {
-					var deferred = arguments[0];
-					var index = result.length - 1;
-					var bookmark = result[index];
-	
-					me.sortIfOld(bookmark, me, function(result, deferred) {
-						// Send a message to the UI saying how many bookmarks we will sort
-						me.chromeSendMessage(SmartBookmarkSorter.config.sortBeginMsg + "," + length);
+			// Generate the asynchronous calls in the chain
+			for(i = 0; i < length; i++) {					
+				// Closure
+				(function(bookmark, index) {
+					// Push a function to sort a bookmark at the chained index
+					sortFuncts.push(
+						function () {
+							var deferred = arguments[0];
 
-						// Resolve the deferred object, allowing the chain to continue
-						deferred.resolve(index);
-					}, deferred)	
-				}
-			);
-			
-			// Generate the other asynchronous calls in the chain
-			for(i = 0; i < length - 1; i++) {					
-				// Push a function to sort a bookmark at the chained index
-				sortFuncts.push(
-					function () {
-						var deferred = arguments[0];
-						var index = arguments[arguments.length - 1] - 1;
-						var bookmark = result[index];
+							me.sortIfOld(bookmark, me, function(result, deferred) {
+								// Send a message to the UI saying there was a successful conversion at the specified index
+								var msgSort = index;
+								console.log("MESSAGE = ", msgSort);
+								me.chromeSendMessage(SmartBookmarkSorter.config.sortSuccessfulMsg + "," + msgSort);
 
-						me.sortIfOld(bookmark, me, function(result, deferred) {
-							// Send a message to the UI saying there was a successful conversion at the specified index
-							var msgSort = length - index;
-							me.chromeSendMessage(SmartBookmarkSorter.config.sortSuccessfulMsg + "," + msgSort);
-
-							// Resolve the deferred object, allowing the chain to continue
-							deferred.resolve(index);
-						}, deferred);			
-					}				
-				);
+								// Resolve the deferred object, allowing the chain to continue
+								deferred.resolve(index);
+							}, deferred);			
+						}				
+					);
+				})(result[i], i);
 			}
 
 			// Chained asynchronous callbacks		

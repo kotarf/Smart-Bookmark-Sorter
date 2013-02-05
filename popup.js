@@ -203,13 +203,13 @@ $(function() {
 			// Display an error dialog
 			$( "#dialog_error_sort" ).dialog( "open" );			
 		}
-		else if(messageCode === "sortBegin") {
+		else if(messageCode === background_page.SmartBookmarkSorter.config.sortBeginMsg) {
 			var numSorts = parseInt(messageSplit[1]);
 			console.log("NUMSORTS = ", numSorts);
 			$( "#progressbar_sorting" ).progressbar( "option", "value", 0);		
 			$( "#progressbar_sorting" ).progressbar( "option", "max", numSorts );			
 		}
-		else if(messageCode === "sortSuccessful") {
+		else if(messageCode === background_page.SmartBookmarkSorter.config.sortSuccessfulMsg) {
 			var indexSort = parseInt(messageSplit[1]);
 
 			// getter
@@ -218,7 +218,7 @@ $(function() {
 			// setter
 			$( "#progressbar_sorting" ).progressbar( "option", "value", indexSort );		
 		}
-		else if(messageCode === "sortComplete") {
+		else if(messageCode === background_page.SmartBookmarkSorter.config.sortCompleteMsg) {
 			// getter
 			var value = $( "#progressbar_sorting").progressbar( "option", "value" );
 			 
