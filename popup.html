@@ -3,20 +3,16 @@
 <head>
 	<meta charset="utf-8">
 	<title>Smart Bookmark Sorter</title>
-	
 	<!--********** JQuery ************-->
-	<script src="js/jquery-1.8.3.js"></script>
-	<script src="js/jquery-ui-1.9.2.custom.js"></script>
+	<script src="js/jquery-1.8.3.min.js"></script>
+	<script src="js/jquery-ui-1.9.2.custom.min.js"></script>
 	<link href="css/jquery-ui-1.9.2.custom.css" rel="stylesheet">
-	
 	<!--********** JQuery Plugins************-->
     <script src="js/jquery.total-storage.js"></script>
-
 	<!--********** UI ************-->
 	<script src="popup.js"></script>
 	<link rel="stylesheet" type="text/css" href="css/popup.css" />
 </head>
-
 <!--********** UI - HTML ************-->
 <div id="tabs" >
     <ul>
@@ -24,6 +20,7 @@
         <li><a href="#tabs-2">Backup</a></li>
         <li><a href="#tabs-3">Manual Sort</a></li>
         <li><a href="#tabs-4">Auto Sort</a></li>
+        <li><a href="#tabs-5">About</a></li>
     </ul>
     <div id="tabs-1">
 		<body>
@@ -42,13 +39,14 @@
 			<p>You must register for an Alchemy API key to use this extension.</p>
 			<p>Register at <a href="http://www.alchemyapi.com/api/register.html" target="_blank">AlchemyAPI</a></p>			
 		</div>
-		<img src="AlchemyAPI.jpg" alt="Alchemy API Logo">
+		<img src="images/AlchemyAPI.jpg" alt="Alchemy API Logo">
 		</body>   
 	</div>
     <div id="tabs-2">
         <p>Please back-up your bookmarks by selecting the button below and navigating to Organize->Export bookmarks to HTML file</p>
 		<button id="button_backup">Backup</button>
 		<button id="button_continue">Continue</button>
+		<img id="img_export" src="images/Chrome_Export_Bookmarks.png" alt="Chrome Export Bookmarks">
     </div>
     <div id="tabs-3">
 		<p>This will sort all your Other Bookmarks into folders by category and title. Please make sure you have backed up your bookmarks before proceeding!</p>
@@ -82,6 +80,16 @@
 		<input type="checkbox" id="button_autosort"/>
 		<label for="button_autosort" title="Enables or disables automatic sort. You must toggle me to refresh settings changed above.">Automatic Sort</label>
     </div>
+	<div id="tabs-5">
+		<div id="container">
+			<p>Thanks to:</p>		
+			<a href="http://alchemyapi.com" target="_blank"><img src="images/AlchemyAPI.jpg" alt="Alchemy API Logo"></a>
+			<a href="http://jqueryui.com" target="_blank"><img src="images/jquery_ui_logo.png" alt="JQuery UI Logo"></a>
+			<a href="http://jquery.com" target="_blank"><img src="images/jquery_logo.png" alt="JQuery Logo"></a>
+			<p>Without the above, this extension would not have been feasible for me.</p>
+			<p>Actively seeking people to take over the project and fix my awful code.</p>
+			<p>Repository at <a href="https://github.com/kotarf/Smart-Bookmark-Sorter" target="_blank">GitHub</a></p>
+		</div>
+	</div>
 </div>
-
 </html>

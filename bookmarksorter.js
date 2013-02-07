@@ -457,13 +457,6 @@
 							if(statusInfo == me.config.dailyLimitError) {
 								// Daily limit reached must stop the chain
 								me.chromeSendMessage(me.config.dailyLimitError);
-							} else if (baseUrl !== url) {
-								// Otherwise the page isn't HTML- fall back on the base URL.
-								console.log("*** REDOING TITLE ON ERROR *** with baseUrl = ", baseUrl);
-								// Cache the redo
-								me.cacheTitle(cachedData, baseUrl, me.config.redoCode);
-								// Redo
-								me.alchemyTitleLookup(baseUrl, callback);						
 							} else {
 								// Cannot read this page- resolve with Unsorted after caching as unsorted
 								title = me.config.unsortedFolderName;
@@ -481,14 +474,9 @@
 				{
 					// Cached title
 					var title = cachedData.title;
-					
-					// Check if it is a redo
-					if (title ===  me.config.redoCode) {
-						me.alchemyTitleLookup(baseUrl, callback);
-					} else {							
-						// Invoke the callback
-						callback.call(me, title);
-					}
+								
+					// Invoke the callback
+					callback.call(me, title);
 				}
 		},
 		
@@ -655,6 +643,9 @@
 			var sortFuncts = [],
 				length = (num !== undefined && num < result.length) ? num : result.length;
 
+			// Send a message saying the sorting has begun
+			me.chromeSendMessage(me.config.sortBeginMsg + "," + length);
+
 			// Generate the asynchronous calls in the chain
 			for(i = 0; i < length; i++) {					
 				// Closure
@@ -668,7 +659,7 @@
 								// Send a message to the UI saying there was a successful conversion at the specified index
 								var msgSort = index;
 								console.log("MESSAGE = ", msgSort);
-								me.chromeSendMessage(SmartBookmarkSorter.config.sortSuccessfulMsg + "," + msgSort);
+								me.chromeSendMessage(me.config.sortSuccessfulMsg + "," + msgSort);
 
 								// Resolve the deferred object, allowing the chain to continue
 								deferred.resolve(index);
@@ -1240,4 +1231,3 @@
 		}
 	};
 })(this);
-// Copyright 2013 Frank Kotarski

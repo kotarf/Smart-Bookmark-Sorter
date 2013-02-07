@@ -226,5 +226,4 @@ $(function() {
 			$( "#progressbar_sorting" ).progressbar( "option", "value", value + 1 );
 		}
 	});
-
 });
