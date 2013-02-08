@@ -87,8 +87,11 @@ $(function() {
 	});
 	
 	$( "#button_sample").button().click(function() {
-		// Sort a sample of bookmarks
-		background_page.SmartBookmarkSorter.sortSample();
+		// Check if a sort is in progress
+		if(!background_page.SmartBookmarkSorter.getIsSorting()) {
+			// Sort a sample of bookmarks
+			background_page.SmartBookmarkSorter.sortSample();
+		}
 	});
 	
 	$( "#button_sort").button().click(function() {
@@ -106,7 +109,11 @@ $(function() {
 		hide: "explode",
 		buttons: {
 			"Sort all bookmarks": function() {
-				background_page.SmartBookmarkSorter.sortAllBookmarks();
+				// Check if a sort is in progress
+				if(!background_page.SmartBookmarkSorter.getIsSorting()) {
+					// Sort all bookmarks
+					background_page.SmartBookmarkSorter.sortAllBookmarks();
+				}
 				$( this ).dialog( "close" );
 			},
 			Cancel: function() {

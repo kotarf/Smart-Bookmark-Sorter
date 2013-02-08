@@ -41,7 +41,8 @@
 			dailyLimitError : 			"daily-transaction-limit-exceeded",
 			sortBeginMsg :				"sortBegin",
 			sortSuccessfulMsg : 		"sortSuccessful",
-			sortCompleteMsg : 			"sortComplete"		
+			sortCompleteMsg : 			"sortComplete",
+			isSortingKey :				"isSorting",
 		},
 
 		/**
@@ -633,7 +634,8 @@
 		 * @param {int} num The number of bookmarks to sort. If left undefined, sorts all bookmarks.
 		 * @config {string} sortBeginMsg Successful message code sent to UI
 		 * @config {string} sortSuccessfulMsg Successful message code sent to UI
-		 * @config {string} sortCompleteMsg Successful message code sent to UI		 
+		 * @config {string} sortCompleteMsg Successful message code sent to UI
+		 * @config {boolean} isSorting Successful Local storage variable for in progress sorting	 		 
 		 */
 		sortBookmarks : function (result, num, callback)
 		{
@@ -645,6 +647,9 @@
 
 			// Send a message saying the sorting has begun
 			me.chromeSendMessage(me.config.sortBeginMsg + "," + length);
+			
+			// Set a local storage variable to sorting in progress
+			me.setIsSorting(true);
 
 			// Generate the asynchronous calls in the chain
 			for(i = 0; i < length; i++) {					
@@ -672,14 +677,22 @@
 			// Chained asynchronous callbacks		
 			var asyncChain = me.jQueryWhenSync(me, sortFuncts);
 			
-			// Bind to the asynchronous chain.
+			// Bind the done callback to the asynchronous chain.
 			asyncChain.done(
 				function(){
-					// Send a message to the UI saying we're done
-					me.chromeSendMessage(SmartBookmarkSorter.config.sortCompleteMsg);
-					
 					// Execute the completion callback
 					callback.call(me);
+				}
+			);
+			
+			// Bind the always callback to the asynchronous chain
+			asyncChain.always( 
+				function() {
+					// Set that we are no longer sorting
+					me.setIsSorting(false);
+					
+					// Send a message to the UI saying we're done
+					me.chromeSendMessage(SmartBookmarkSorter.config.sortCompleteMsg);
 				}
 			);
 		},
@@ -833,6 +846,27 @@
 		getOldBookmarkDays : function ()
 		{
 			return this.jQueryStorageGetValue(this.config.oldBookmarkDaysKey) || this.config.oldBookmarkDaysDefault;
+		},
+
+		/**
+		 * Set the sorting in progress  in local storage
+		 * @config {string} [isSortingKey] Sorting in progress key
+		 * @param {int} value The int to set
+		 */		
+		setIsSorting : function (value)
+		{
+			this.jQueryStorageSetValue(this.config.isSortingKey, value);
+		},
+		
+		/**
+		 * Get the sorting in progress from storage
+		 * @config {string} [isSortingKey] Sorting in progress key
+		 * @returns {boolean}
+		 */		
+		getIsSorting : function()
+		{
+			return this.jQueryStorageGetValue(this.config.isSortingKey) || false;
+		
 		},
 
 		/**
