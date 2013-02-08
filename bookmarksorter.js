@@ -36,11 +36,13 @@
 			sampleNumber : 				5,
 			categoryErrorScore :		.5,
 			unsortedFolderName :		"unsorted",
+			redoCode :					"_REDO", 
 			okStatus : 					"OK",
 			dailyLimitError : 			"daily-transaction-limit-exceeded",
 			sortBeginMsg :				"sortBegin",
 			sortSuccessfulMsg : 		"sortSuccessful",
-			sortCompleteMsg : 			"sortComplete"		
+			sortCompleteMsg : 			"sortComplete",
+			isSortingKey :				"isSorting",
 		},
 
 		/**
@@ -128,7 +130,6 @@
 		onCreatedListener : function (id, bookmark)
 		{
 			// Sort the bookmark by title
-			console.log("Yay - ", bookmark);
 			var me = this,
 				SBS = me.SmartBookmarkSorter;
 			SBS.sortBookmark(bookmark, function(){}, undefined);
@@ -207,7 +208,6 @@
 						if(url !== undefined)
 						{
 							// Sort the bookmark if it's older than the configured amount
-							console.log("Sorting ", bookmark);
 							me.sortIfOld(bookmark, me, function(){}, undefined);
 						}
 					}	
@@ -260,7 +260,6 @@
 		 */
 		sortIfOld : function(bookmark, scope, callback, deferred) {
 			var me = scope;
-			console.log("oh my god sorting- ", bookmark);
 
 			if (bookmark !== undefined) {
 				var myId = bookmark.id;
@@ -350,9 +349,11 @@
 			var me = this,
 				cachedData = me.jQueryStorageGetValue(url);
 				baseUrl = me.getBaseUrl(url);
-				
+						
 			// Check if there is cached data
 			if(cachedData === null || cachedData.category === undefined) {
+				console.log("Making a CATEGORY request for - ", url);
+
 				// If not, make an API request.
 				me.alchemyCategory(url, function(data, textStatus, jqXHR) {
 					
@@ -369,45 +370,55 @@
 						if (score < me.config.categoryErrorScore && baseUrl !== url ) {
 							// Redo the categorization with the base URL because the result was not good enough
 							console.log("*** REDOING CAT ON SCORE *** with baseUrl = ", baseUrl);
+							
+							// Cache it as a redo
+							me.cacheCategory(cachedData, url, me.config.redoCode);
+							
 							me.alchemyCategoryLookup(baseUrl, callback);
 							
 						} else {			
-							// Title data may already exist
-							if(cachedData != null)
-								title = cachedData.title;
-				
-							// Check result
-							if (category !== null && category !== undefined) {
+							// Cache the category
+							me.cacheCategory(cachedData, url, category);
 						
-								// Cache the result in local storage
-								me.jQueryStorageSetValue(url, {title: title, category: category});
-								console.log("Good");
-								// Invoke the callback
-								callback.call(me, category);
-							}
+							// Invoke the callback
+							callback.call(me, category);
 						}
 					} else {
 						// Error handling
-						console.log("ERROR CAT = ", data);
+						console.log("*****ERROR CAT********= ", data, " for url = " , url);
 						if(statusInfo == me.config.dailyLimitError) {
 							// Daily limit reached must stop the chain
 							me.chromeSendMessage(me.config.dailyLimitError);
 						} else if (baseUrl !== url) {
 							// Otherwise the page isn't HTML- fall back on the base URL.
 							console.log("*** REDOING CAT ON ERROR *** with baseUrl = ", baseUrl);
+							// Cache the redo
+							me.cacheCategory(cachedData, url, me.config.redoCode);
+							// Redo
 							me.alchemyCategoryLookup(baseUrl, callback);						
 						} else {
-							// Cannot read this page- resolve with Unsorted
-							callback.call(me, me.config.unsortedFolderName);
+							// Cannot read this page- resolve with Unsorted after caching as unsorted
+							category = me.config.unsortedFolderName;
+							
+							// Cache the category
+							me.cacheCategory(cachedData, url, category);
+						
+							// Invoke the callback
+							callback.call(me, category);
 						}
 					}
 				});
 			} else {
 				// Cached category
 				var category = cachedData.category;
-
-				// Invoke the callback
-				callback.call(me, category);
+				
+				// If a Redo is cached, call it with the baseUrl
+				if (category === me.config.redoCode) {
+					me.alchemyCategoryLookup(baseUrl, callback);
+				} else {
+					// Invoke the callback
+					callback.call(me, category);
+				}
 			}
 		},
 
@@ -419,12 +430,13 @@
 		alchemyTitleLookup : function (url, callback) {
 				// Check local cache to see if the base URL has associated data.
 				var me = this,
-					cachedData = me.jQueryStorageGetValue(baseUrl),
-					baseUrl = me.getBaseUrl(url);
+					baseUrl = me.getBaseUrl(url),
+					cachedData = me.jQueryStorageGetValue(baseUrl);
 
 				// If not, make an API request.
 				if(cachedData === null || cachedData.title === undefined)
 				{
+					console.log("Making a TITLE request for - ", url);
 					me.alchemyTitle(baseUrl, function(data, textStatus, jqXHR) {
 
 						var title = data.title;
@@ -435,31 +447,26 @@
 						// Check the status first
 						if (status === me.config.okStatus) {						
 						
-							// Category data may already exist
-							if(cachedData != null)
-								category = cachedData.category;
-							
-							// Check result
-							if (title !== null && title !== undefined) {		
-								// Cache the result in local storage
-								me.jQueryStorageSetValue(baseUrl, {title: title, category: category});
-							}
-							
+							// Cache the title
+							me.cacheTitle(cachedData, baseUrl, title);
+								
 							// Invoke the callback
 							callback.call(me, title);
 						} else {
 							// Error handling
-							console.log("ERROR CAT = ", data);
+							console.log("*****ERROR TITLE********= ", data, " for url = " , url);
 							if(statusInfo == me.config.dailyLimitError) {
 								// Daily limit reached must stop the chain
-							} else if (baseUrl !== url) {
 								me.chromeSendMessage(me.config.dailyLimitError);
-								// Otherwise the page isn't HTML- fall back on the base URL.
-								console.log("*** REDOING TITLE ON ERROR *** with baseUrl = ", baseUrl);
-								me.alchemyTitleLookup(baseUrl, callback);						
 							} else {
-								// Cannot read this page- resolve with Unsorted
-								callback.call(me, me.config.unsortedFolderName);
+								// Cannot read this page- resolve with Unsorted after caching as unsorted
+								title = me.config.unsortedFolderName;
+								
+								// Cache the title
+								me.cacheTitle(cachedData, baseUrl, title);
+							
+								// Invoke the callback
+								callback.call(me, title);
 							}
 						}
 					});
@@ -468,10 +475,49 @@
 				{
 					// Cached title
 					var title = cachedData.title;
-					
+								
 					// Invoke the callback
 					callback.call(me, title);
 				}
+		},
+		
+		/**
+		 * Store the title (value) by the url (key)
+		 * This could be refactored along with with half of my code
+		 * @param {object} cachedData The cachedData object that was retrieved
+		 * @param {string} url The url to store by
+		 * @param {string} title The title to store
+		 */
+		cacheTitle : function(cachedData, url, title) {
+			// Category data may already exist
+			var category = undefined, 
+				me = this;
+				
+			if(cachedData !== null) {
+				category = cachedData.category;
+			}
+			
+			// Cache the title in local storage
+			me.jQueryStorageSetValue(url, {title: title, category: category});			
+		},
+		
+		/**
+		 * Store the category (value) by the url (key)
+		 * @param {object} cachedData The cachedData object that was retrieved
+		 * @param {string} url The url to store by
+		 * @param {string} category The category to store
+		 */
+		cacheCategory : function(cachedData, url, category) {
+			// Title data may already exist
+			var title = undefined,
+				me = this;
+				
+			if(cachedData !== null) {
+				title = cachedData.title;
+			}
+			
+			// Cache the category in local storage
+			me.jQueryStorageSetValue(url, {title: title, category: category});		
 		},
 
 		/**
@@ -588,7 +634,8 @@
 		 * @param {int} num The number of bookmarks to sort. If left undefined, sorts all bookmarks.
 		 * @config {string} sortBeginMsg Successful message code sent to UI
 		 * @config {string} sortSuccessfulMsg Successful message code sent to UI
-		 * @config {string} sortCompleteMsg Successful message code sent to UI		 
+		 * @config {string} sortCompleteMsg Successful message code sent to UI
+		 * @config {boolean} isSorting Successful Local storage variable for in progress sorting	 		 
 		 */
 		sortBookmarks : function (result, num, callback)
 		{
@@ -598,54 +645,54 @@
 			var sortFuncts = [],
 				length = (num !== undefined && num < result.length) ? num : result.length;
 
-			// Push the starting asynchronous call
-			sortFuncts.push(
-				function () {
-					var deferred = arguments[0];
-					var index = result.length - 1;
-					var bookmark = result[index];
-	
-					me.sortIfOld(bookmark, me, function(result, deferred) {
-						// Send a message to the UI saying how many bookmarks we will sort
-						me.chromeSendMessage(SmartBookmarkSorter.config.sortBeginMsg + "," + length);
-
-						// Resolve the deferred object, allowing the chain to continue
-						deferred.resolve(index);
-					}, deferred)	
-				}
-			);
+			// Send a message saying the sorting has begun
+			me.chromeSendMessage(me.config.sortBeginMsg + "," + length);
 			
-			// Generate the other asynchronous calls in the chain
-			for(i = 0; i < length - 1; i++) {					
-				// Push a function to sort a bookmark at the chained index
-				sortFuncts.push(
-					function () {
-						var deferred = arguments[0];
-						var index = arguments[arguments.length - 1] - 1;
-						var bookmark = result[index];
+			// Set a local storage variable to sorting in progress
+			me.setIsSorting(true);
 
-						me.sortIfOld(bookmark, me, function(result, deferred) {
-							// Send a message to the UI saying there was a successful conversion
-							me.chromeSendMessage(SmartBookmarkSorter.config.sortSuccessfulMsg);
+			// Generate the asynchronous calls in the chain
+			for(i = 0; i < length; i++) {					
+				// Closure
+				(function(bookmark, index) {
+					// Push a function to sort a bookmark at the chained index
+					sortFuncts.push(
+						function () {
+							var deferred = arguments[0];
 
-							// Resolve the deferred object, allowing the chain to continue
-							deferred.resolve(index);
-						}, deferred);			
-					}				
-				);
+							me.sortIfOld(bookmark, me, function(result, deferred) {
+								// Send a message to the UI saying there was a successful conversion at the specified index
+								var msgSort = index;
+								console.log("MESSAGE = ", msgSort);
+								me.chromeSendMessage(me.config.sortSuccessfulMsg + "," + msgSort);
+
+								// Resolve the deferred object, allowing the chain to continue
+								deferred.resolve(index);
+							}, deferred);			
+						}				
+					);
+				})(result[i], i);
 			}
 
 			// Chained asynchronous callbacks		
 			var asyncChain = me.jQueryWhenSync(me, sortFuncts);
 			
-			// Bind to the asynchronous chain.
+			// Bind the done callback to the asynchronous chain.
 			asyncChain.done(
 				function(){
-					// Send a message to the UI saying we're done
-					me.chromeSendMessage(SmartBookmarkSorter.config.sortCompleteMsg);
-					
 					// Execute the completion callback
 					callback.call(me);
+				}
+			);
+			
+			// Bind the always callback to the asynchronous chain
+			asyncChain.always( 
+				function() {
+					// Set that we are no longer sorting
+					me.setIsSorting(false);
+					
+					// Send a message to the UI saying we're done
+					me.chromeSendMessage(SmartBookmarkSorter.config.sortCompleteMsg);
 				}
 			);
 		},
@@ -799,6 +846,27 @@
 		getOldBookmarkDays : function ()
 		{
 			return this.jQueryStorageGetValue(this.config.oldBookmarkDaysKey) || this.config.oldBookmarkDaysDefault;
+		},
+
+		/**
+		 * Set the sorting in progress  in local storage
+		 * @config {string} [isSortingKey] Sorting in progress key
+		 * @param {int} value The int to set
+		 */		
+		setIsSorting : function (value)
+		{
+			this.jQueryStorageSetValue(this.config.isSortingKey, value);
+		},
+		
+		/**
+		 * Get the sorting in progress from storage
+		 * @config {string} [isSortingKey] Sorting in progress key
+		 * @returns {boolean}
+		 */		
+		getIsSorting : function()
+		{
+			return this.jQueryStorageGetValue(this.config.isSortingKey) || false;
+		
 		},
 
 		/**
@@ -1197,4 +1265,3 @@
 		}
 	};
 })(this);
-// Copyright 2013 Frank Kotarski

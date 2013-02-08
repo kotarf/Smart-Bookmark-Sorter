@@ -87,8 +87,11 @@ $(function() {
 	});
 	
 	$( "#button_sample").button().click(function() {
-		// Sort a sample of bookmarks
-		background_page.SmartBookmarkSorter.sortSample();
+		// Check if a sort is in progress
+		if(!background_page.SmartBookmarkSorter.getIsSorting()) {
+			// Sort a sample of bookmarks
+			background_page.SmartBookmarkSorter.sortSample();
+		}
 	});
 	
 	$( "#button_sort").button().click(function() {
@@ -106,7 +109,11 @@ $(function() {
 		hide: "explode",
 		buttons: {
 			"Sort all bookmarks": function() {
-				background_page.SmartBookmarkSorter.sortAllBookmarks();
+				// Check if a sort is in progress
+				if(!background_page.SmartBookmarkSorter.getIsSorting()) {
+					// Sort all bookmarks
+					background_page.SmartBookmarkSorter.sortAllBookmarks();
+				}
 				$( this ).dialog( "close" );
 			},
 			Cancel: function() {
@@ -199,24 +206,26 @@ $(function() {
 	chrome.extension.onMessage.addListener(function(message, sender, sendResponse) {
 		var messageSplit = message.split(",");
 		var messageCode = messageSplit[0];
-		if(messageCode == background_page.SmartBookmarkSorter.config.dailyLimitError) {
+		if(messageCode === background_page.SmartBookmarkSorter.config.dailyLimitError) {
 			// Display an error dialog
 			$( "#dialog_error_sort" ).dialog( "open" );			
 		}
-		else if(messageCode == "sortBegin") {
+		else if(messageCode === background_page.SmartBookmarkSorter.config.sortBeginMsg) {
 			var numSorts = parseInt(messageSplit[1]);
 			console.log("NUMSORTS = ", numSorts);
 			$( "#progressbar_sorting" ).progressbar( "option", "value", 0);		
 			$( "#progressbar_sorting" ).progressbar( "option", "max", numSorts );			
 		}
-		else if(messageCode == "sortSuccessful") {
+		else if(messageCode === background_page.SmartBookmarkSorter.config.sortSuccessfulMsg) {
+			var indexSort = parseInt(messageSplit[1]);
+
 			// getter
 			var value = $( "#progressbar_sorting").progressbar( "option", "value" );
 			 
 			// setter
-			$( "#progressbar_sorting" ).progressbar( "option", "value", value + 1 );		
+			$( "#progressbar_sorting" ).progressbar( "option", "value", indexSort );		
 		}
-		else if(messageCode == "sortComplete") {
+		else if(messageCode === background_page.SmartBookmarkSorter.config.sortCompleteMsg) {
 			// getter
 			var value = $( "#progressbar_sorting").progressbar( "option", "value" );
 			 
@@ -224,5 +233,4 @@ $(function() {
 			$( "#progressbar_sorting" ).progressbar( "option", "value", value + 1 );
 		}
 	});
-
 });

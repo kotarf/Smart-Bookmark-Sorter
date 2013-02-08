@@ -37,6 +37,9 @@
 		display: inline-block; 
 		width:500px;
 	}
+	#img_export {
+		margin-top: 2em;
+	}
 	#autocomplete_apikey {
 		width: 25em;
 	}
