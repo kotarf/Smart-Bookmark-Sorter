@@ -1,6 +1,5 @@
 $(function() {
-	var background_page = chrome.extension.getBackgroundPage(),
-		key = null;
+	var background_page = chrome.extension.getBackgroundPage();
 	
 	$( document ).tooltip();
 	
