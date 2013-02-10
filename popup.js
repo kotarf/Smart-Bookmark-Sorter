@@ -1,5 +1,6 @@
 $(function() {
-	var background_page = chrome.extension.getBackgroundPage();
+	var background_page = chrome.extension.getBackgroundPage(),
+		key = null;
 	
 	$( document ).tooltip();
 	
@@ -18,15 +19,16 @@ $(function() {
 		$( "#tabs" ).tabs( "select", 2);
 	}
 
-	$( "#autocomplete_apikey" ).autocomplete({
-		source: []
-	});
-	
-	$( "#button_key").button().click(function() {
-		var key =  $("#autocomplete_apikey").val();
-		// Test the API key to see if it is valid
-		background_page.SmartBookmarkSorter.alchemyKeyTest( key, 
-			function() { 
+	$( "#dialog_confirm_privacy" ).dialog({
+		resizable: false,
+		height:300,
+		width:400,
+		modal: true,
+		autoOpen: false,
+		show: "blind",
+		hide: "explode",
+		buttons: {
+			"Accept AlchemyAPI's Privacy Policy": function() {
 				// Save the state and the key
 				background_page.SmartBookmarkSorter.setApiKey(key);
 				
@@ -35,6 +37,26 @@ $(function() {
 				// Unlock and go to the next tab
 				$( "#tabs" ).tabs( "enable", 1 );
 				$( "#tabs" ).tabs( "select", 1 );
+				
+				$( this ).dialog( "close" );
+			},
+			Cancel: function() {
+				$( this ).dialog( "close" );
+			}
+		}
+	});
+	
+	$( "#autocomplete_apikey" ).autocomplete({
+		source: []
+	});
+	
+	$( "#button_key").button().click(function() {
+		key =  $("#autocomplete_apikey").val();
+		// Test the API key to see if it is valid
+		background_page.SmartBookmarkSorter.alchemyKeyTest( key, 
+			function() { 
+				// Bring up a confirmation box noting privacy
+				$( "#dialog_confirm_privacy" ).dialog( "open" );
 			}, 
 			
 			function() {
