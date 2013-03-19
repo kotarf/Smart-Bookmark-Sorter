@@ -91,7 +91,7 @@ $(function() {
 	}
 	
 	$( "#spinner_archivedays" ).spinner({
-		min: 1,
+		min: 0,
 		stop: function( event, ui ) {	
 			// Set the archive days
 			var value = $( "#spinner_archivedays" ).spinner( "value");
@@ -190,9 +190,11 @@ $(function() {
 	});
 	
 	// Restore states for autosort buttons
-	var isOnCreate = background_page.SmartBookmarkSorter.getAutoOnCreate();
-	var isOnInterval = background_page.SmartBookmarkSorter.getAutoInterval();
-	var isPrioritize = background_page.SmartBookmarkSorter.getAutoPrioritize();
+	var isOnCreate = background_page.SmartBookmarkSorter.getAutoOnCreate(),
+		isOnInterval = background_page.SmartBookmarkSorter.getAutoInterval(),
+		isPrioritize = background_page.SmartBookmarkSorter.getAutoPrioritize(),
+		isAutoSort = background_page.SmartBookmarkSorter.getAutoOn();
+		
 	if(isOnCreate) {
 		$("#button_oncreate").attr("checked","checked");
 		$("#button_oncreate").button("refresh");
@@ -211,16 +213,21 @@ $(function() {
 		if(isChecked) {
 			// Enable automatic sort
 			background_page.SmartBookmarkSorter.enableAutomaticSort();
+			background_page.SmartBookmarkSorter.setAutoOn(true);
 		}
 		else {
 			// Disable automatic sort
 			background_page.SmartBookmarkSorter.disableAutomaticSort();
+			background_page.SmartBookmarkSorter.setAutoOn(false);
 		}
 	});
 	
-	if(isOnCreate || isOnInterval || isPrioritize) {
+	if(isAutoSort) {
 		$("#button_autosort").attr("checked","checked");
-		$("#button_autosort").button("refresh");	
+		$("#button_autosort").button("refresh");
+		background_page.SmartBookmarkSorter.enableAutomaticSort();
+	} else {
+		background_page.SmartBookmarkSorter.disableAutomaticSort();
 	}
 	
 	// Add listeners for error messages and progress messages

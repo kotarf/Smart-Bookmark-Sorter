@@ -31,6 +31,7 @@
 			indexCounter : 				"bookmarkIndexCounter",
 			oldBookmarkDaysDefault : 	7,
 			bookmarkAlarm : 			"bookmarkAlarm",
+			rootBookmarksId : 			"1",
 			rootBookmarksIndex : 		0,
 			otherBookmarksIndex : 		1,
 			sampleNumber : 				5,
@@ -118,8 +119,8 @@
 		disableAutomaticSort : function () {
 			var me = this;
 			me.detachCreateSort();
-			me.detachIntervalSort();
 			me.detachVisitSort();
+			me.detachIntervalSort();
 		},
 
 		/**
@@ -131,8 +132,10 @@
 		{
 			// Sort the bookmark by title
 			var me = this,
-				SBS = me.SmartBookmarkSorter;
-			SBS.sortBookmark(bookmark, function(){}, undefined);
+				SBS = me.SmartBookmarkSorter,
+				deferred = $.Deferred();
+
+			SBS.sortBookmark(bookmark, function(){}, deferred);
 		},
 
 		/**
@@ -156,18 +159,21 @@
 					var id = result.id;	
 					var parentId = result.parentId;
 
-					// Move it to the top of other bookmarks
-					SBS.getOtherBookmarks(function(result) {
+					if ( parentId !== SBS.config.rootBookmarksId ) {
 
-						var otherBookmarksId = result.id;
-											
-						var destination = {
-							parentId : otherBookmarksId,
-							index : 0
-						};
-						
-						SBS.moveBookmark(id, destination, function() {});
-					});
+						// Move it to the top of other bookmarks if it's not in root bookmarks
+						SBS.getOtherBookmarks(function(result) {
+
+							var otherBookmarksId = result.id;
+												
+							var destination = {
+								parentId : otherBookmarksId,
+								index : 0
+							};
+							
+							SBS.moveBookmark(id, destination, function() {});
+						});
+					}
 				}
 				// Otherwise, do nothing.
 			});
@@ -199,16 +205,17 @@
 					
 					if(bookmark !== undefined) {				
 						// Check if the URL hasn't been visited in a while
-						var title = bookmark.title;
-						var url = bookmark.url;
-						var myId = bookmark.id;
-						var baseUrl = me.getBaseUrl(url);
+						var title = bookmark.title,
+							url = bookmark.url,
+							myId = bookmark.id,
+							baseUrl = me.getBaseUrl(url),
+							deferred = $.Deferred();
 
 						// Could be a folder
 						if(url !== undefined)
 						{
 							// Sort the bookmark if it's older than the configured amount
-							me.sortIfOld(bookmark, me, function(){}, undefined);
+							me.sortIfOld(bookmark, me, function(){}, deferred);
 						}
 					}	
 					// Otherwise, do nothing.
@@ -278,7 +285,7 @@
 								var currentTime = new Date();
 								var daysBetween = me.daysBetween(visitTime, currentTime.getTime());
 							
-								if (daysBetween > oldBookmarkDays) {
+								if (oldBookmarkDays === 0 || ( daysBetween > oldBookmarkDays) ) {
 									// Sort the bookmark
 									me.sortBookmark(bookmark, callback, deferred);
 								} else {
@@ -548,6 +555,9 @@
 						me.createBookmark(folder, function(result) {
 							// Invoke the callback
 							callback.call(me, result);
+							
+							// This should go into the callback as a create sequence. Desperately need to refactor code...
+							me.attachCreateSort();
 						});
 					}
 				});
@@ -828,6 +838,26 @@
 		},
 
 		/**
+		 * Sets the auto sort in local storage
+		 * @config {string} [autoSortActiveKey] Local storage key for auto sort on
+		 * @param {bool} value The boolean to set
+		 */
+		setAutoOn : function (value)
+		{
+			this.jQueryStorageSetValue(this.config.autoSortActiveKey, value);
+		},
+
+		/**
+		 * Gets the auto sort in local storage
+		 * @config {string} [autoSortActiveKey] Local storage key for auto sort on
+		 * @returns {bool}
+		 */
+		getAutoOn : function ()
+		{
+			return this.jQueryStorageGetValue(this.config.autoSortActiveKey);
+		},
+
+		/**
 		 * Set the old bookmark days in local storage
 		 * @config {string} [oldBookmarkDaysKey] Local storage key for old bookmark days
 		 * @param {int} value The int to set
@@ -845,7 +875,9 @@
 		 */
 		getOldBookmarkDays : function ()
 		{
-			return this.jQueryStorageGetValue(this.config.oldBookmarkDaysKey) || this.config.oldBookmarkDaysDefault;
+			var oldBookmarkDays = this.jQueryStorageGetValue(this.config.oldBookmarkDaysKey);
+			
+			return oldBookmarkDays === null ? this.config.oldBookmarkDaysDefault : oldBookmarkDays;
 		},
 
 		/**
