@@ -27,7 +27,7 @@
 			autoSortTimedKey : 			"bookmarkauto_timed",
 			autoSortPriorityKey : 		"bookmarkauto_priority",
 			outputMode : 				"json",
-			autoSortMinutes : 			1,
+			autoSortMinutes : 			5,
 			indexCounter : 				"bookmarkIndexCounter",
 			oldBookmarkDaysDefault : 	7,
 			bookmarkAlarm : 			"bookmarkAlarm",
