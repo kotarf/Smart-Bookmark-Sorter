@@ -555,10 +555,10 @@
 						me.createBookmark(folder, function(result) {
 							// Invoke the callback
 							callback.call(me, result);
-							
-							// This should go into the callback as a create sequence. Desperately need to refactor code...
-							me.attachCreateSort();
 						});
+						
+						// This should go into the callback as a create sequence. Desperately need to refactor code...
+						me.attachCreateSort();
 					}
 				});
 		},
