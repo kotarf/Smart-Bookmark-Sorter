@@ -106,9 +106,10 @@
 			var me = this,
 				isOnCreate = me.getAutoOnCreate(),
 				isOnInterval = me.getAutoInterval(),
-				isPrioritize = me.getAutoPrioritize();
+				isPrioritize = me.getAutoPrioritize(),
+				isSorting = me.getIsSorting();
 
-			if(isOnCreate)
+			if(isOnCreate && !isSorting)
 				me.attachCreateSort();
 			if(isOnInterval)
 				me.attachIntervalSort();
@@ -144,8 +145,8 @@
 			deferred.always(function() {
 				SBS.setIsOnCreateSorting(false);
 				
+				// If auto create should be on, re-attach it
 				if (SBS.getAutoOnCreate() && SBS.getAutoOn() && !SBS.getIsSorting()) {
-					console.log("REATTACHINGGGGGG");
 					SBS.attachCreateSort();
 				}
 			
