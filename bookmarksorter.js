@@ -44,6 +44,10 @@
 			sortSuccessfulMsg : 		"sortSuccessful",
 			sortCompleteMsg : 			"sortComplete",
 			isSortingKey :				"isSorting",
+			isOnCreateSortingKey :		"isSortingOnCreate",
+			isOnIntervalSortingKey :	"isSortingInterval",
+			isOnManualSortingKey :		"isSortingManual"
+
 		},
 
 		/**
@@ -130,12 +134,32 @@
 		 */
 		onCreatedListener : function (id, bookmark)
 		{
+			console.log("****************LISTENER KICKED OFF****************");
 			// Sort the bookmark by title
 			var me = this,
 				SBS = me.SmartBookmarkSorter,
 				deferred = $.Deferred();
-
-			SBS.sortBookmark(bookmark, function(){}, deferred);
+				
+			// Always re-attach create sort if it should be enabled, but only after a bookmark is sorted
+			deferred.always(function() {
+				SBS.setIsOnCreateSorting(false);
+				
+				if (SBS.getAutoOnCreate() && SBS.getAutoOn() && !SBS.getIsSorting()) {
+					console.log("REATTACHINGGGGGG");
+					SBS.attachCreateSort();
+				}
+			
+			});
+			
+			// Set is sorting
+			SBS.setIsOnCreateSorting(true);
+				
+			// Disable the bookmark onCreate listener, because programmatic creation of bookmarks/folders will kick off the event
+			SBS.detachCreateSort();
+		
+			SBS.sortBookmark(bookmark, function(){
+				deferred.resolve();
+			}, deferred);
 		},
 
 		/**
@@ -214,8 +238,26 @@
 						// Could be a folder
 						if(url !== undefined)
 						{
+							// Always re-attach create sort if it should be enabled, but only after a bookmark is sorted
+							deferred.always(function() {
+								me.setIsOnAlarmSorting(false);
+								
+								if (me.getAutoOnCreate() && me.getAutoOn() && !me.getIsSorting()) {
+									me.attachCreateSort();
+								}
+							
+							});
+							
+							// Set is sorting
+							me.setIsOnAlarmSorting(true);
+								
+							// Disable the bookmark onCreate listener, because programmatic creation of bookmarks/folders will kick off the event
+							me.detachCreateSort();
+							
 							// Sort the bookmark if it's older than the configured amount
-							me.sortIfOld(bookmark, me, function(){}, deferred);
+							me.sortIfOld(bookmark, me, function(result, deferred){
+								deferred.resolve();
+							}, deferred);
 						}
 					}	
 					// Otherwise, do nothing.
@@ -549,16 +591,11 @@
 							parentId : parentId
 						};
 			
-						// Disable the bookmark onCreate listener, because programmatic creation of bookmarks/folders will kick off the event
-						me.detachCreateSort();
 						// Create the folder
 						me.createBookmark(folder, function(result) {
 							// Invoke the callback
 							callback.call(me, result);
 						});
-						
-						// This should go into the callback as a create sequence. Desperately need to refactor code...
-						me.attachCreateSort();
 					}
 				});
 		},
@@ -659,7 +696,10 @@
 			me.chromeSendMessage(me.config.sortBeginMsg + "," + length);
 			
 			// Set a local storage variable to sorting in progress
-			me.setIsSorting(true);
+			me.setIsOnManualSorting(true);
+			
+			// Detach create sort
+			me.detachCreateSort();
 
 			// Generate the asynchronous calls in the chain
 			for(i = 0; i < length; i++) {					
@@ -673,7 +713,8 @@
 							me.sortIfOld(bookmark, me, function(result, deferred) {
 								// Send a message to the UI saying there was a successful conversion at the specified index
 								var msgSort = index;
-								console.log("MESSAGE = ", msgSort);
+	
+								// Send a message to the UI with the bookmark that was just sorted
 								me.chromeSendMessage(me.config.sortSuccessfulMsg + "," + msgSort);
 
 								// Resolve the deferred object, allowing the chain to continue
@@ -699,10 +740,15 @@
 			asyncChain.always( 
 				function() {
 					// Set that we are no longer sorting
-					me.setIsSorting(false);
+					me.setIsOnManualSorting(false);
 					
 					// Send a message to the UI saying we're done
 					me.chromeSendMessage(SmartBookmarkSorter.config.sortCompleteMsg);
+					
+					// Reattach the create sort listener if it is enabled
+					if (me.getAutoOnCreate() && me.getAutoOn() && !me.getIsSorting()) {
+						me.attachCreateSort();
+					}				
 				}
 			);
 		},
@@ -897,10 +943,79 @@
 		 */		
 		getIsSorting : function()
 		{
-			return this.jQueryStorageGetValue(this.config.isSortingKey) || false;
+			var me = this,
+				manualSorting = me.getIsOnManualSorting(),
+				createSorting = me.getIsOnCreateSorting(),
+				alarmSorting = me.getIsOnAlarmSorting(),
+				isSorting = manualSorting || createSorting || alarmSorting;
+
+			return isSorting;
+		
+		},
+		
+		/**
+		 * Set the sorting in progress for the manual sorting in local storage
+		 * @config {string} [isOnManualSortingKey] Sorting in progress key
+		 * @param {int} value The int to set
+		 */			
+		setIsOnManualSorting : function (value)
+		{
+			this.jQueryStorageSetValue(this.config.isOnManualSortingKey, value);
+		},
+		
+		/**
+		 * Get the sorting in progress from storage
+		 * @config {string} [isOnManualSortingKey] Sorting in progress key
+		 * @returns {boolean}
+		 */		
+		getIsOnManualSorting : function()
+		{
+			return this.jQueryStorageGetValue(this.config.isOnManualSortingKey) || false;
 		
 		},
 
+		/**
+		 * Set the sorting in progress for the on created listener in local storage
+		 * @config {string} [isOnCreateSortingKey] Sorting in progress key
+		 * @param {int} value The int to set
+		 */		
+		setIsOnCreateSorting : function (value)
+		{
+			this.jQueryStorageSetValue(this.config.isOnCreateSortingKey, value);
+		},
+		
+		/**
+		 * Get the sorting for the on created listener in progress from storage
+		 * @config {string} [isOnCreateSortingKey] Sorting in progress key
+		 * @returns {boolean}
+		 */		
+		getIsOnCreateSorting : function()
+		{
+			return this.jQueryStorageGetValue(this.config.isOnCreateSortingKey) || false;
+		
+		},
+		
+		/**
+		 * Set the sorting in progress  in local storage
+		 * @config {string} [isOnIntervalSortingKey] Sorting in progress key
+		 * @param {int} value The int to set
+		 */		
+		setIsOnAlarmSorting : function (value)
+		{
+			this.jQueryStorageSetValue(this.config.isOnIntervalSortingKey, value);
+		},
+		
+		/**
+		 * Get the sorting in progress from storage
+		 * @config {string} [isOnIntervalSortingKey] Sorting in progress key
+		 * @returns {boolean}
+		 */		
+		getIsOnAlarmSorting : function()
+		{
+			return this.jQueryStorageGetValue(this.config.isOnIntervalSortingKey) || false;
+		
+		},
+		
 		/**
 		 * Get the base url of a qualified URL
 		 * @param {string} url The qualified url to slice

@@ -109,7 +109,7 @@ $(function() {
 	
 	$( "#button_sample").button().click(function() {
 		// Check if a sort is in progress
-		if(!background_page.SmartBookmarkSorter.getIsSorting()) {
+		if(!background_page.SmartBookmarkSorter.getIsOnManualSorting()) {
 			// Sort a sample of bookmarks
 			background_page.SmartBookmarkSorter.sortSample();
 		}
@@ -131,7 +131,7 @@ $(function() {
 		buttons: {
 			"Sort all bookmarks": function() {
 				// Check if a sort is in progress
-				if(!background_page.SmartBookmarkSorter.getIsSorting()) {
+				if(!background_page.SmartBookmarkSorter.getIsOnManualSorting()) {
 					// Sort all bookmarks
 					background_page.SmartBookmarkSorter.sortAllBookmarks();
 				}
@@ -225,10 +225,7 @@ $(function() {
 	if(isAutoSort) {
 		$("#button_autosort").attr("checked","checked");
 		$("#button_autosort").button("refresh");
-		background_page.SmartBookmarkSorter.enableAutomaticSort();
-	} else {
-		background_page.SmartBookmarkSorter.disableAutomaticSort();
-	}
+	} 
 	
 	// Add listeners for error messages and progress messages
 	chrome.extension.onMessage.addListener(function(message, sender, sendResponse) {
