@@ -9,4 +9,7 @@ $(function() {
 	} else {
 		background_page.SmartBookmarkSorter.disableAutomaticSort();
 	}
+	
+	// Attach import listeners
+	background_page.SmartBookmarkSorter.attachImportListeners();
 });

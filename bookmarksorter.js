@@ -88,7 +88,8 @@
 		 * Detaches the automatic interval sort
 		*/
 		detachIntervalSort : function () {
-			this.chromeAlarmsDetach(this.config.bookmarkAlarm);
+			// TODO clear alarm by name
+			this.chromeClearAlarms();
 		},
 
 		/**
@@ -135,7 +136,7 @@
 		 */
 		onCreatedListener : function (id, bookmark)
 		{
-			console.log("****************LISTENER KICKED OFF****************");
+			console.log("****************ON CREATE LISTENER KICKED OFF****************", id, bookmark);
 			// Sort the bookmark by title
 			var me = this,
 				SBS = me.SmartBookmarkSorter,
@@ -172,36 +173,40 @@
 		{
 			var url = result.url,
 				me = this,
-				SBS = me.SmartBookmarkSorter;
+				SBS = me.SmartBookmarkSorter,
+				isSorting = SBS.getIsSorting();
 
-			// Check if a matching bookmark exists
-			SBS.searchBookmarks(url, function(results) {
-				var result = results[0];
+			// Check if any sorting is in progress, if so do not move anything
+			if (!isSorting) {
+				// Check if a matching bookmark exists
+				SBS.searchBookmarks(url, function(results) {
+					var result = results[0];
 
-				// Matching bookmark to url exists
-				if(result !==  undefined)
-				{
-					var id = result.id;	
-					var parentId = result.parentId;
+					// Matching bookmark to url exists
+					if(result !==  undefined)
+					{
+						var id = result.id;	
+						var parentId = result.parentId;
 
-					if ( parentId !== SBS.config.rootBookmarksId ) {
+						if ( parentId !== SBS.config.rootBookmarksId ) {
 
-						// Move it to the top of other bookmarks if it's not in root bookmarks
-						SBS.getOtherBookmarks(function(result) {
+							// Move it to the top of other bookmarks if it's not in root bookmarks
+							SBS.getOtherBookmarks(function(result) {
 
-							var otherBookmarksId = result.id;
-												
-							var destination = {
-								parentId : otherBookmarksId,
-								index : 0
-							};
-							
-							SBS.moveBookmark(id, destination, function() {});
-						});
+								var otherBookmarksId = result.id;
+													
+								var destination = {
+									parentId : otherBookmarksId,
+									index : 0
+								};
+								
+								SBS.moveBookmark(id, destination, function() {});
+							});
+						}
 					}
-				}
-				// Otherwise, do nothing.
-			});
+					// Otherwise, do nothing.
+				});
+			}
 		},
 
 		/**
@@ -269,6 +274,37 @@
 					me.jQueryStorageSetValue(counterKey, incCounter);
 				});
 			});
+		},
+
+		/**
+		 * Attach import listeners
+		 */	
+		attachImportListeners : function() {
+			this.chromeOnImportBegan(this.onImportBeganListener);
+			this.chromeOnImportEnd(this.onImportEndListener);
+		},
+		
+		/**
+		 * When an import starts, disable automatic sort
+		 */
+		onImportBeganListener : function () {
+			// When an import starts, disable automatic sort
+			var me = this.SmartBookmarkSorter;
+			
+			me.disableAutomaticSort();
+		},
+		
+		/**
+		 * When an import ends, enable automatic sort if it is configured to be enabled
+		 */
+		onImportEndListener : function() {
+			// When an import ends, enable automatic sort
+			var me = this.SmartBookmarkSorter,
+				isAutoSort = me.getAutoOn();
+				
+			if (isAutoSort) {
+				me.enableAutomaticSort();
+			}
 		},
 
 		/**
@@ -419,7 +455,7 @@
 
 						if (score < me.config.categoryErrorScore && baseUrl !== url ) {
 							// Redo the categorization with the base URL because the result was not good enough
-							console.log("*** REDOING CAT ON SCORE *** with baseUrl = ", baseUrl);
+							console.log("*** REDOING CAT ON SCORE *** with baseUrl = ", baseUrl, " and category ", category);
 							
 							// Cache it as a redo
 							me.cacheCategory(cachedData, url, me.config.redoCode);
@@ -1384,6 +1420,14 @@
 		},
 
 		/**
+		 * Clear all alarms
+		 */
+		chromeClearAlarms : function (name)
+		{
+			chrome.alarms.clearAll();
+		},
+
+		/**
 		 * Get visit information by URL
 		 * @param {string} url The url to search history for
 		 * @param {function} callback The callback to run with visit results
@@ -1410,6 +1454,24 @@
 		chromeSendMessage : function (message) 
 		{
 			chrome.extension.sendMessage(undefined, message);		
-		}
+		},
+		
+		/**
+		 * Attach on import begin event
+		 * @param {function} callback The listener to attach
+		 */
+		chromeOnImportBegan : function (callback)
+		{
+			chrome.bookmarks.onImportBegan.addListener(callback);
+		},
+
+		/**
+		 * Attach on import end event
+		 * @param {function} callback The listener to detach
+		 */
+		chromeOnImportEnd : function (callback)
+		{
+			chrome.bookmarks.onImportEnded.addListener(callback);
+		},
 	};
 })(this);
