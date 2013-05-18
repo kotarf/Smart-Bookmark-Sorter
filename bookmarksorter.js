@@ -434,13 +434,14 @@
 				// If not, make an API request.
 				me.alchemyCategory(url, function(data, textStatus, jqXHR) {
 					
-					var category = data.category;
-					var title = undefined;
-					var status = data.status;
-					var statusInfo = data.statusInfo;
+					var category = data.category,
+						title = undefined,
+						status = data.status,
+						statusInfo = data.statusInfo,
+						score = data.score;
 		
 					// Check the status first
-					if (status === me.config.okStatus) {
+					if (status === me.config.okStatus && score && category) {
 						// If the score of the result is horrible, redo the whole thing using the baseUrl (if not already using it)
 						var score = data.score;
 
@@ -516,13 +517,13 @@
 					console.log("Making a TITLE request for - ", url);
 					me.alchemyTitle(baseUrl, function(data, textStatus, jqXHR) {
 
-						var title = data.title;
-						var category = undefined;
-						var status = data.status;
-						var statusInfo = data.statusInfo;
+						var title = data.title,
+							category = undefined,
+							status = data.status,
+							statusInfo = data.statusInfo;
 			
 						// Check the status first
-						if (status === me.config.okStatus) {						
+						if (status === me.config.okStatus && title) {						
 						
 							// Cache the title
 							me.cacheTitle(cachedData, baseUrl, title);

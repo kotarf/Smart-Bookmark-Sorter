@@ -17,3 +17,4 @@ Version history:
 "0.0.1.0", Check if sorting is in progress before attaching create listener in enable auto sort
 "0.0.1.1", Imports will temporarily disable automatic sort, visit sort will not move if bookmarking is in progress, clear all interval alarms because duplicates were noticed on Chromium
 "0.0.1.2", New logo, promo images. Switched to MIT license.
+"0.0.1.3", Bug #15
