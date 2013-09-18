@@ -302,7 +302,7 @@
 		 * Sorts a single bookmark
 		 * Makes two folders and puts the bookmark in the 2nd folder
 		 * @param {BookmarkTreeNode} bookmark The bookmark to sort.
-		 * @param {function} callback The bookmark to sort.
+		 * @param {function} callback The callback to run when successful.
 		 * @param {object} deferred The deferred object to resolve [JQuery whenSync].
 		 */
 		sortBookmark : function (bookmark, callback, deferred) {
@@ -753,9 +753,6 @@
 					);
 				})(result[i], i);
 			}
-
-			// Chained asynchronous callbacks		
-			var asyncChain = me.jQueryWhenSync(me, sortFuncts);
 			
 			// Bind the done callback to the asynchronous chain.
 			asyncChain.done(
@@ -780,6 +777,9 @@
 					}				
 				}
 			);
+			
+			// Chained asynchronous callbacks		
+			var asyncChain = me.jQueryWhenSync(me, sortFuncts);
 		},
 		
 		/**
