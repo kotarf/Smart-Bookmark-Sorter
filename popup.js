@@ -15,7 +15,7 @@ $(function() {
 	}
 	else {
 		$('#tabs').tabs('disable', 0); // disable first tab
-		$( "#tabs" ).tabs( "select", 2);
+		$( "#tabs" ).tabs({active: 2});
 	}
 
 	$( "#dialog_confirm_privacy" ).dialog({
@@ -35,7 +35,7 @@ $(function() {
 				
 				// Unlock and go to the next tab
 				$( "#tabs" ).tabs( "enable", 1 );
-				$( "#tabs" ).tabs( "select", 1 );
+				$( "#tabs" ).tabs( "load", 1 );
 				
 				$( this ).dialog( "close" );
 			},
@@ -83,10 +83,10 @@ $(function() {
 	});
 	
 	$( "#button_continue").button().click(function() {
-		$( "#tabs" ).tabs( "select", 2 );
+		$( "#tabs" ).tabs({active: 2})
 	});
-	
-	if ($.totalStorage("bookmarksorter_backup") === null) {
+
+	if ($.totalStorage('bookmarksorter_backup') === null) {
 		$("#button_continue").button("disable");
 	}
 	
@@ -108,11 +108,15 @@ $(function() {
 	});
 	
 	$( "#button_sample").button().click(function() {
+        console.log("DA FK");
 		// Check if a sort is in progress
 		if(!background_page.SmartBookmarkSorter.getIsOnManualSorting()) {
 			// Sort a sample of bookmarks
 			background_page.SmartBookmarkSorter.sortSample();
 		}
+        else{
+            console.log("!!!!Sort is in progress");
+        }
 	});
 	
 	$( "#button_sort").button().click(function() {

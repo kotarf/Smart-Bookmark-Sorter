@@ -2,6 +2,10 @@
 
 // See the file license.txt for copying permission.
 
+chrome.bookmarks.search("unsorted", function(results)
+{
+   console.log(results);
+});
 /******* BOOKMARK SORTER *******/
 
 (function(global) {
@@ -298,6 +302,27 @@
 			}
 		},
 
+        /**
+         * Sorts a single bookmark
+         * Makes two folders and puts the bookmark in the 2nd folder
+         * @param {BookmarkTreeNode} bookmark The bookmark to sort.
+         * @param {function} callback The callback to run when successful.
+         * @param {object} deferred The deferred object to resolve [JQuery whenSync].
+         */
+        sortBookmarkEx : function (bookmark, deferredA, deferredB)
+        {
+            $.when(
+                $.noop(),
+
+                $.noop()
+
+            ).then(function(){
+
+
+            });
+
+        },
+
 		/**
 		 * Sorts a single bookmark
 		 * Makes two folders and puts the bookmark in the 2nd folder
@@ -315,7 +340,7 @@
 						index : 0,
 						parentId : result.id
 					};
-					
+
 					// Move the bookmark to that folder only if there is a successful result
 					if (result !== undefined && result !== null) {
 						me.moveBookmark(bookmark.id, destination, function(result){
@@ -385,6 +410,17 @@
 			} 
 		},
 
+        createFolderByCategoryEx : function (url, parentId)
+        {
+            deferred = $.Deferred();
+
+            me.alchemyCategoryLookup(url, function(category) {
+                me.createFolder(category, parentId, deferred);
+            });
+
+            return deferred.promise();
+        },
+
 		/**
 		 * Creates a folder by the category of the given URL
 		 * Makes an Alchemy API request to check the category if it is not already cached
@@ -392,12 +428,12 @@
 		 * @param {string} parentId The parentId to create the folder in.
 		 * @param {function} callback The callback to run after creating the folder.
 		 */
-		createFolderByCategory : function (url, parentId, callback) 
+		createFolderByCategory : function (url, parentId, deferred)
 		{
 			var me = this;
 			
 			me.alchemyCategoryLookup(url, function(category) {
-				me.createFolder(category, parentId, callback);
+				me.createFolder(category, parentId, deferred);
 			});
 		},
 
@@ -414,6 +450,56 @@
 				me.createFolder(title, parentId, callback);
 			});
 		},
+
+        alchemyCategoryObject : function()
+        {
+            var 
+        },
+
+        //TODO figure out how to use template method to have category, title, and concept lookups share code
+        alchemyCategoryLookupEx : function(url, type)
+        {
+            var categorylookup = new AlchemyLookupObject();
+        },
+
+        AlchemyLookupObject : {
+            AlchemyLookupObject: function(request, preprocess, postproc, accept, resultprop) {
+              this.request = request;
+              this.preproc = preprocess;
+              this.postproc = postprocess;
+              this.accept = accept;
+              this.resultprop = resultprop;
+            },
+
+            request : $.noop(),
+            preproc : $.noop(),
+            postproc : $.noop(),
+            accept : $.noop(),
+            resultprop : "",
+
+            lookup: function(url) {
+                var me = this;
+                var newDef = $.Deferred(); //we will resolve this when next is done
+
+                newUrl = me.preproc(url);
+
+                var ajax = me.request(newUrl).done(function(data, textStatus, jqXHR) {
+                    if(me.accept.call(me, data))
+                    {
+                        var result = data[me.resultprop];
+                        me.postproc.call(me, result);
+
+                        newDef.resolve(result);
+                    }
+                    else
+                    {
+                        newDef.reject();
+                    }
+                });
+
+                return newDef.promise();
+            }
+        },
 
 		/**
 		 * Makes an Alchemy API request to check the category if it is not already cached
@@ -607,7 +693,7 @@
 		createFolder : function (title, parentId, callback) {
 				var me = this;
 				
-				me.searchFolders(parentId, function(bookmark) {return bookmark !== undefined && bookmark.title === title && bookmark.url === undefined}, 
+				me.searchFolders(parentId, title,
 				function(ret) {
 					if(ret.length > 0){
 						// Folder already exists - invoke the callback with the first result
@@ -754,32 +840,32 @@
 				})(result[i], i);
 			}
 			
-			// Bind the done callback to the asynchronous chain.
-			asyncChain.done(
-				function(){
-					// Execute the completion callback
-					callback.call(me);
-				}
-			);
-			
-			// Bind the always callback to the asynchronous chain
-			asyncChain.always( 
-				function() {
-					// Set that we are no longer sorting
-					me.setIsOnManualSorting(false);
-					
-					// Send a message to the UI saying we're done
-					me.chromeSendMessage(SmartBookmarkSorter.config.sortCompleteMsg);
-					
-					// Reattach the create sort listener if it is enabled
-					if (me.getAutoOnCreate() && me.getAutoOn() && !me.getIsSorting()) {
-						me.attachCreateSort();
-					}				
-				}
-			);
-			
 			// Chained asynchronous callbacks		
 			var asyncChain = me.jQueryWhenSync(me, sortFuncts);
+
+            // Bind the done callback to the asynchronous chain.
+            asyncChain.done(
+                function(){
+                    // Execute the completion callback
+                    callback.call(me);
+                }
+            );
+
+            // Bind the always callback to the asynchronous chain
+            asyncChain.always(
+                function() {
+                    // Set that we are no longer sorting
+                    me.setIsOnManualSorting(false);
+
+                    // Send a message to the UI saying we're done
+                    me.chromeSendMessage(SmartBookmarkSorter.config.sortCompleteMsg);
+
+                    // Reattach the create sort listener if it is enabled
+                    if (me.getAutoOnCreate() && me.getAutoOn() && !me.getIsSorting()) {
+                        me.attachCreateSort();
+                    }
+                }
+            );
 		},
 		
 		/**
@@ -1082,6 +1168,17 @@
 		},
 
 		/******* JQUERY *******/
+        /**
+         * Make a REST request with JQuery. Wraps around JQuery
+         * @param {string} requestURL The endpoint request URL
+         * @param {object} data The data to send
+         * @param {function} callback The callback to run after request completes
+         * @param {string} dataType The data type to return back
+         */
+        jqueryRESTEx : function (requestURL, data, callback, dataType)
+        {
+            return jQuery.get(requestURL, data, callback, dataType);
+        },
 
 		/**
 		 * Make a REST request with JQuery. Wraps around JQuery
@@ -1238,6 +1335,31 @@
 		},
 		
 		/******* CHROME CONTROL *******/
+        /*
+         * @param {string} parentId The optional parentId to search for
+         * @param {string} name The name of the folder(s) to search for
+         * @param {function} deferred The deferred object to resolve when successful
+
+         */
+        searchFolders : function (parentId, name, deferred )
+        {
+            var me = this;
+            chrome.bookmarks.search(name, function(results) {
+
+                if(_.isArray(results))
+                {
+                    var nodes = _.filter(results, function(node) {
+                        return $.isEmptyObject(node.url);
+                    });
+
+                    deferred.resolve(nodes);
+                }
+                else
+                {
+                    deferred.fail();
+                }
+            });
+        },
 
 		/**
 		 * Recurses through the bookmark tree looking for bookmarks that pass the test
@@ -1247,7 +1369,7 @@
 		 * @param {function} test The function to test on a BookmarkTreeNode element 
 		 * @param {function} callback The callback to run with the results
 		 */
-		searchFolders : function (parentId, test, callback)
+		searchFoldersEx : function (parentId, test, callback)
 		{
 			var me = this;
 			var ret = [];
@@ -1306,6 +1428,8 @@
 		 */
 		getBookmarkChildren : function (id, callback)
 		{
+
+            console.log("ID = ", id, callback)
 			chrome.bookmarks.getChildren(id, callback);
 		},
 
@@ -1445,7 +1569,7 @@
 		 */		
 		chromeSendMessage : function (message) 
 		{
-			chrome.extension.sendMessage(undefined, message);		
+			chrome.runtime.sendMessage(message);
 		},
 		
 		/**
@@ -1464,6 +1588,6 @@
 		chromeOnImportEnd : function (callback)
 		{
 			chrome.bookmarks.onImportEnded.addListener(callback);
-		},
+		}
 	};
 })(this);

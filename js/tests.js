@@ -1,5 +1,5 @@
 QUnit.begin(function() {
-	SmartBookmarkSorter.setApiKey("");
+	SmartBookmarkSorter.setApiKey("206d87478099feddd6a0769e727ad0f91b37b739");
 });
 
 test( "test", function() {
@@ -41,14 +41,16 @@ asyncTest("A single bookmark is sorted", 2, function() {
 	var callback = function() {
 
 		chrome.bookmarks.search("Stack Overflow Test", function (results) {
-			var result = results[0],
-				parentId = result.parentId,
-				id = result.id;
-				
-			chrome.bookmarks.remove(id, $.noop)
-			
-			notEqual(parentId, 1, "parent is not other bookmarks");
-			ok(parentId, "parent exists");
+
+            $.forEach(function(element, index) {
+                var result = element,
+                    parentId = result.parentId,
+                    id = result.id;
+                    chrome.bookmarks.remove(id, $.noop)
+                    notEqual(parentId, 1, "parent is not other bookmarks");
+                    ok(parentId, "parent exists");
+            }, results)
+
 			start();
 		});
 	};
@@ -63,7 +65,6 @@ asyncTest("A single bookmark is sorted", 2, function() {
 		SmartBookmarkSorter.sortBookmark(result, callback, deferred)
 	});
 });
-
 
 QUnit.done(function() {
 	var items = $.totalStorage.getAll();

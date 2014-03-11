@@ -42,51 +42,63 @@
  * @url http://upstatement.com/blog/2012/01/jquery-local-storage-done-right-and-easy/
  */
 
-;(function($){
+;(function($, undefined){
 
 	/* Variables I'll need throghout */
 
-	var ls = window.localStorage;
-	var supported;
-	if (typeof ls == 'undefined' || typeof window.JSON == 'undefined'){
-		supported = false;
-	} else {
-		supported = true;
+	var supported, ls, mod = 'test';
+	if ('localStorage' in window){
+		try {
+			ls = (typeof window.localStorage === 'undefined') ? undefined : window.localStorage;
+			if (typeof ls == 'undefined' || typeof window.JSON == 'undefined'){
+				supported = false;
+			} else {
+				supported = true;
+			}
+			
+			window.localStorage.setItem(mod, '1');
+			window.localStorage.removeItem(mod);
+		}
+		catch (err){
+			supported = false;
+		}
 	}
+
+
 	/* Make the methods public */
 
 	$.totalStorage = function(key, value, options){
 		return $.totalStorage.impl.init(key, value);
-	}
-	
+	};
+
 	$.totalStorage.setItem = function(key, value){
 		return $.totalStorage.impl.setItem(key, value);
-	}
-	
+	};
+
 	$.totalStorage.getItem = function(key){
 		return $.totalStorage.impl.getItem(key);
-	}
-	
+	};
+
 	$.totalStorage.getAll = function(){
 		return $.totalStorage.impl.getAll();
-	}
-	
+	};
+
 	$.totalStorage.deleteItem = function(key){
 		return $.totalStorage.impl.deleteItem(key);
-	}
-	
+	};
+
 	/* Object to hold all methods: public and private */
-	
+
 	$.totalStorage.impl = {
-		
+
 		init: function(key, value){
 			if (typeof value != 'undefined') {
-				return this.setItem(key, value);	
+				return this.setItem(key, value);
 			} else {
 				return this.getItem(key);
 			}
 		},
-		
+
 		setItem: function(key, value){
 			if (!supported){
 				try {
@@ -100,7 +112,6 @@
 			ls.setItem(key, saver);
 			return this.parseResult(saver);
 		},
-		
 		getItem: function(key){
 			if (!supported){
 				try {
@@ -108,9 +119,10 @@
 				} catch(e){
 					return null;
 				}
- 			}
-			return this.parseResult(ls.getItem(key));
-		},	
+			}
+			var item = ls.getItem(key);
+			return this.parseResult(item);
+		},
 		deleteItem: function(key){
 			if (!supported){
 				try {
@@ -119,12 +131,12 @@
 				} catch(e){
 					return false;
 				}
- 			}
+			}
 			ls.removeItem(key);
 			return true;
-		},	
+		},
 		getAll: function(){
-			var items = new Array();
+			var items = [];
 			if (!supported){
 				try {
 					var pairs = document.cookie.split(";");
@@ -137,19 +149,21 @@
 					return null;
 				}
 			} else {
-				for (var i in ls){
-					if (i.length){
-						items.push({key:i, value:this.parseResult(ls.getItem(i))});
+				for (var j in ls){
+					if (j.length){
+						items.push({key:j, value:this.parseResult(ls.getItem(j))});
 					}
 				}
 			}
 			return items;
 		},
-		
 		parseResult: function(res){
 			var ret;
 			try {
 				ret = JSON.parse(res);
+				if (typeof ret == 'undefined'){
+					ret = res;
+				}
 				if (ret == 'true'){
 					ret = true;
 				}
@@ -159,9 +173,10 @@
 				if (parseFloat(ret) == ret && typeof ret != "object"){
 					ret = parseFloat(ret);
 				}
-			} catch(e){}
+			} catch(e){
+				ret = res;
+			}
 			return ret;
 		}
-	}
-
+	};
 })(jQuery);
