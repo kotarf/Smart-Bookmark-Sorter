@@ -1,12 +1,15 @@
-$(function() {
-	var background_page = chrome.extension.getBackgroundPage();
-	
+define(["jquery", "flight", "jquery-ui", "jquery.total-storage", "domReady"], function($, SmartBookmarkSorter) {
+
+    var background_page = chrome.extension.getBackgroundPage(),
+        SmartBookmarkSorter = background_page.require("sortapi");
+
+
 	$( document ).tooltip();
 	
 	$( "#tabs" ).tabs({ heightStyle: "content" });
 
 	// Get api key from local storage
-	var key = background_page.SmartBookmarkSorter.getApiKey();
+	var key = SmartBookmarkSorter.getApiKey();
 
 	if (key === null || key === undefined) {
 		$('#tabs').tabs('disable', 1); // disable second tab
@@ -29,7 +32,7 @@ $(function() {
 		buttons: {
 			"Accept AlchemyAPI's Privacy Policy": function() {
 				// Save the state and the key
-				background_page.SmartBookmarkSorter.setApiKey(key);
+				SmartBookmarkSorter.setApiKey(key);
 				
 				$('#tabs').tabs('disable', 0); // disable first tab
 				
@@ -52,7 +55,7 @@ $(function() {
 	$( "#button_key").button().click(function() {
 		key =  $("#autocomplete_apikey").val();
 		// Test the API key to see if it is valid
-		background_page.SmartBookmarkSorter.alchemyKeyTest( key, 
+		SmartBookmarkSorter.alchemyKeyTest( key,
 			function() { 
 				// Bring up a confirmation box noting privacy
 				$( "#dialog_confirm_privacy" ).dialog( "open" );
@@ -95,11 +98,11 @@ $(function() {
 		stop: function( event, ui ) {	
 			// Set the archive days
 			var value = $( "#spinner_archivedays" ).spinner( "value");
-			background_page.SmartBookmarkSorter.setOldBookmarkDays(value);
+			SmartBookmarkSorter.setOldBookmarkDays(value);
 		}
 	});
 
-	var oldBookmarkDays = background_page.SmartBookmarkSorter.getOldBookmarkDays();
+	var oldBookmarkDays = SmartBookmarkSorter.getOldBookmarkDays();
 	
 	$( "#spinner_archivedays" ).spinner( "value", oldBookmarkDays);
 	
@@ -110,9 +113,9 @@ $(function() {
 	$( "#button_sample").button().click(function() {
         console.log("DA FK");
 		// Check if a sort is in progress
-		if(!background_page.SmartBookmarkSorter.getIsOnManualSorting()) {
+		if(!SmartBookmarkSorter.getIsOnManualSorting()) {
 			// Sort a sample of bookmarks
-			background_page.SmartBookmarkSorter.sortSample();
+			SmartBookmarkSorter.sortSample();
 		}
         else{
             console.log("!!!!Sort is in progress");
@@ -135,9 +138,9 @@ $(function() {
 		buttons: {
 			"Sort all bookmarks": function() {
 				// Check if a sort is in progress
-				if(!background_page.SmartBookmarkSorter.getIsOnManualSorting()) {
+				if(!SmartBookmarkSorter.getIsOnManualSorting()) {
 					// Sort all bookmarks
-					background_page.SmartBookmarkSorter.sortAllBookmarks();
+					SmartBookmarkSorter.sortAllBookmarks();
 				}
 				$( this ).dialog( "close" );
 			},
@@ -161,11 +164,11 @@ $(function() {
 		var isChecked = $( "#button_oncreate" ).is(':checked');
 		if(isChecked) {
 			// Set the on create flag to true
-			background_page.SmartBookmarkSorter.setAutoOnCreate(true);
+			SmartBookmarkSorter.setAutoOnCreate(true);
 		}
 		else {
 			// Set the on create flag to false
-			background_page.SmartBookmarkSorter.setAutoOnCreate(false);
+			SmartBookmarkSorter.setAutoOnCreate(false);
 		}
 	});
 	
@@ -173,11 +176,11 @@ $(function() {
 		var isChecked = $( "#button_interval" ).is(':checked');
 		if(isChecked) {
 			// Set the on interval sort flag to true
-			background_page.SmartBookmarkSorter.setAutoInterval(true);
+			SmartBookmarkSorter.setAutoInterval(true);
 		}
 		else {
 			// Set the on interval sort flag to false
-			background_page.SmartBookmarkSorter.setAutoInterval(false);
+			SmartBookmarkSorter.setAutoInterval(false);
 		}
 	});
 	
@@ -185,19 +188,19 @@ $(function() {
 		var isChecked = $( "#button_prioritize" ).is(':checked');
 		if(isChecked) {
 			// Set the on create flag to true
-			background_page.SmartBookmarkSorter.setAutoPrioritize(true);
+			SmartBookmarkSorter.setAutoPrioritize(true);
 		}
 		else {
 			// Set the on create flag to false
-			background_page.SmartBookmarkSorter.setAutoPrioritize(false);
+			SmartBookmarkSorter.setAutoPrioritize(false);
 		}
 	});
 	
 	// Restore states for autosort buttons
-	var isOnCreate = background_page.SmartBookmarkSorter.getAutoOnCreate(),
-		isOnInterval = background_page.SmartBookmarkSorter.getAutoInterval(),
-		isPrioritize = background_page.SmartBookmarkSorter.getAutoPrioritize(),
-		isAutoSort = background_page.SmartBookmarkSorter.getAutoOn();
+	var isOnCreate = SmartBookmarkSorter.getAutoOnCreate(),
+		isOnInterval = SmartBookmarkSorter.getAutoInterval(),
+		isPrioritize = SmartBookmarkSorter.getAutoPrioritize(),
+		isAutoSort = SmartBookmarkSorter.getAutoOn();
 		
 	if(isOnCreate) {
 		$("#button_oncreate").attr("checked","checked");
@@ -216,13 +219,13 @@ $(function() {
 		var isChecked = $( "#button_autosort" ).is(':checked');
 		if(isChecked) {
 			// Enable automatic sort
-			background_page.SmartBookmarkSorter.enableAutomaticSort();
-			background_page.SmartBookmarkSorter.setAutoOn(true);
+			SmartBookmarkSorter.enableAutomaticSort();
+			SmartBookmarkSorter.setAutoOn(true);
 		}
 		else {
 			// Disable automatic sort
-			background_page.SmartBookmarkSorter.disableAutomaticSort();
-			background_page.SmartBookmarkSorter.setAutoOn(false);
+			SmartBookmarkSorter.disableAutomaticSort();
+			SmartBookmarkSorter.setAutoOn(false);
 		}
 	});
 	
@@ -235,17 +238,17 @@ $(function() {
 	chrome.extension.onMessage.addListener(function(message, sender, sendResponse) {
 		var messageSplit = message.split(",");
 		var messageCode = messageSplit[0];
-		if(messageCode === background_page.SmartBookmarkSorter.config.dailyLimitError) {
+		if(messageCode === SmartBookmarkSorter.config.dailyLimitError) {
 			// Display an error dialog
 			$( "#dialog_error_sort" ).dialog( "open" );			
 		}
-		else if(messageCode === background_page.SmartBookmarkSorter.config.sortBeginMsg) {
+		else if(messageCode === SmartBookmarkSorter.config.sortBeginMsg) {
 			var numSorts = parseInt(messageSplit[1]);
 			console.log("NUMSORTS = ", numSorts);
 			$( "#progressbar_sorting" ).progressbar( "option", "value", 0);		
 			$( "#progressbar_sorting" ).progressbar( "option", "max", numSorts );			
 		}
-		else if(messageCode === background_page.SmartBookmarkSorter.config.sortSuccessfulMsg) {
+		else if(messageCode === SmartBookmarkSorter.config.sortSuccessfulMsg) {
 			var indexSort = parseInt(messageSplit[1]);
 
 			// getter
@@ -254,7 +257,7 @@ $(function() {
 			// setter
 			$( "#progressbar_sorting" ).progressbar( "option", "value", indexSort );		
 		}
-		else if(messageCode === background_page.SmartBookmarkSorter.config.sortCompleteMsg) {
+		else if(messageCode === SmartBookmarkSorter.config.sortCompleteMsg) {
 			// getter
 			var value = $( "#progressbar_sorting").progressbar( "option", "value" );
 			 
@@ -262,4 +265,6 @@ $(function() {
 			$( "#progressbar_sorting" ).progressbar( "option", "value", value + 1 );
 		}
 	});
+
+    return {}
 });
