@@ -1,4 +1,4 @@
-define(["jquery", "flight", "jquery-ui", "jquery.total-storage", "domReady"], function($, SmartBookmarkSorter) {
+define(["jquery", "jquery-ui", "jquery.total-storage", "domReady"], function($) {
 
     var background_page = chrome.extension.getBackgroundPage(),
         SmartBookmarkSorter = background_page.require("sortapi");
@@ -111,7 +111,7 @@ define(["jquery", "flight", "jquery-ui", "jquery.total-storage", "domReady"], fu
 	});
 	
 	$( "#button_sample").button().click(function() {
-        console.log("DA FK");
+
 		// Check if a sort is in progress
 		if(!SmartBookmarkSorter.getIsOnManualSorting()) {
 			// Sort a sample of bookmarks
@@ -244,7 +244,7 @@ define(["jquery", "flight", "jquery-ui", "jquery.total-storage", "domReady"], fu
 		}
 		else if(messageCode === SmartBookmarkSorter.config.sortBeginMsg) {
 			var numSorts = parseInt(messageSplit[1]);
-			console.log("NUMSORTS = ", numSorts);
+
 			$( "#progressbar_sorting" ).progressbar( "option", "value", 0);		
 			$( "#progressbar_sorting" ).progressbar( "option", "max", numSorts );			
 		}

@@ -4,42 +4,8 @@
 
 
 /******* BOOKMARK SORTER *******/
-define(["jquery", "underscore", "jqueryhelpers", "chromeinterface", "alchemy", "purl", ], function($, _, jhelpers, chromex, alchemy) {
+define(["jquery", "underscore", "jqueryhelpers", "storage", "chromeinterface", "alchemy", "config", "purl", ], function($, _, jhelpers, storage, chromex, alchemy, config) {
 	return {
-		/** SmartBookmarkSorter configuration properties. These are all constants. */
-		config : {
-			requestCategoryURL : 		"http://access.alchemyapi.com/calls/url/URLGetCategory",
-			requestTitleURL : 			"http://access.alchemyapi.com/calls/url/URLGetTitle",
-			requestTopicURL : 			"http://access.alchemyapi.com/calls/url/URLGetRankedConcepts",
-			apiStorageKey : 			"bookmarksort_apikey",
-			oldBookmarkDaysKey : 		"bookmarksort_oldarchive",
-			autoSortActiveKey : 		"bookmarksort_auto_on",
-			autoSortCreateKey : 		"bookmarkauto_oncreate",
-			autoSortTimedKey : 			"bookmarkauto_timed",
-			autoSortPriorityKey : 		"bookmarkauto_priority",
-			outputMode : 				"json",
-			autoSortMinutes : 			5,
-			indexCounter : 				"bookmarkIndexCounter",
-			oldBookmarkDaysDefault : 	7,
-			bookmarkAlarm : 			"bookmarkAlarm",
-			rootBookmarksId : 			"1",
-			rootBookmarksIndex : 		0,
-			otherBookmarksIndex : 		1,
-			sampleNumber : 				5,
-			categoryErrorScore :		0.5,
-			unsortedFolderName :		"unsorted",
-			redoCode :					"_REDO",
-			okStatus : 					"OK",
-			dailyLimitError : 			"daily-transaction-limit-exceeded",
-			sortBeginMsg :				"sortBegin",
-			sortSuccessfulMsg : 		"sortSuccessful",
-			sortCompleteMsg : 			"sortComplete",
-			isSortingKey :				"isSorting",
-			isOnCreateSortingKey :		"isSortingOnCreate",
-			isOnIntervalSortingKey :	"isSortingInterval",
-			isOnManualSortingKey :		"isSortingManual"
-
-		},
 
 		/**
 		 * Enable the automatic create sort.
@@ -56,7 +22,7 @@ define(["jquery", "underscore", "jqueryhelpers", "chromeinterface", "alchemy", "
 		 */
 		attachIntervalSort : function () {
 			/* On a timed interval, older bookmarks will be archived to a Category folder and loose bookmarks will be sorted. */
-            chromex.chromeDeployAlarm(this.config.bookmarkAlarm, this.intervalAlarm, this.config.autoSortMinutes);
+            chromex.chromeDeployAlarm(config.bookmarkAlarm, this.intervalAlarm, config.autoSortMinutes);
 		},
 
 		/**
@@ -141,7 +107,7 @@ define(["jquery", "underscore", "jqueryhelpers", "chromeinterface", "alchemy", "
 
 			// Always re-attach create sort if it should be enabled, but only after a bookmark is sorted
 			deferred.always(function() {
-				SBS.setIsOnCreateSorting(false);
+				storage.setIsOnCreateSorting(false);
 
 				// If auto create should be on, re-attach it
 				if (SBS.getAutoOnCreate() && SBS.getAutoOn() && !SBS.getIsSorting()) {
@@ -151,7 +117,7 @@ define(["jquery", "underscore", "jqueryhelpers", "chromeinterface", "alchemy", "
 			});
 
 			// Set is sorting
-			SBS.setIsOnCreateSorting(true);
+            storage.setIsOnCreateSorting(true);
 
 			// Disable the bookmark onCreate listener, because programmatic creation of bookmarks/folders will kick off the event
 			SBS.detachCreateSort();
@@ -197,7 +163,7 @@ define(["jquery", "underscore", "jqueryhelpers", "chromeinterface", "alchemy", "
 									index : 0
 								};
 
-								SBS.moveBookmark(id, destination, function() {});
+								chromex.moveBookmark(id, destination, function() {});
 							});
 						}
 					}
@@ -235,7 +201,7 @@ define(["jquery", "underscore", "jqueryhelpers", "chromeinterface", "alchemy", "
 						var title = bookmark.title,
 							url = bookmark.url,
 							myId = bookmark.id,
-							baseUrl = me.getBaseUrl(url),
+							baseUrl = jhelpers.getBaseUrl(url),
 							deferred = $.Deferred();
 
 						// Could be a folder
@@ -243,7 +209,7 @@ define(["jquery", "underscore", "jqueryhelpers", "chromeinterface", "alchemy", "
 						{
 							// Always re-attach create sort if it should be enabled, but only after a bookmark is sorted
 							deferred.always(function() {
-								me.setIsOnAlarmSorting(false);
+                                storage.setIsOnAlarmSorting(false);
 
 								if (me.getAutoOnCreate() && me.getAutoOn() && !me.getIsSorting()) {
 									me.attachCreateSort();
@@ -252,7 +218,7 @@ define(["jquery", "underscore", "jqueryhelpers", "chromeinterface", "alchemy", "
 							});
 
 							// Set is sorting
-							me.setIsOnAlarmSorting(true);
+                            storage.setIsOnAlarmSorting(true);
 
 							// Disable the bookmark onCreate listener, because programmatic creation of bookmarks/folders will kick off the event
 							me.detachCreateSort();
@@ -311,18 +277,20 @@ define(["jquery", "underscore", "jqueryhelpers", "chromeinterface", "alchemy", "
          * @param {function} callback The callback to run when successful.
          * @param {object} deferred The deferred object to resolve [JQuery whenSync].
          */
-        sortBookmarkEx : function (bookmark, deferredA, deferredB)
-        {
-            $.when(
-                $.noop(),
+        sortBookmarkEx : function (bookmark) {
+            // Make a deferred
+            var dfd = $.Deferred();
 
-                $.noop()
+            // ...sorting...
+            /*
+            // var createFolderPromise = createFolderByCategoryEx(...).then(createFolderByTitleEx().then(function() {
+                Move bookmark to folder using chromex
+                Resolve dfd
+            }
+            */
 
-            ).then(function(){
-
-
-            });
-
+            // Return a promise
+            return dfd.promise();
         },
 
 		/**
@@ -336,6 +304,7 @@ define(["jquery", "underscore", "jqueryhelpers", "chromeinterface", "alchemy", "
 			var me = this;
 
 			me.createFolderByCategory(bookmark.url, undefined, function(result) {
+
 				me.createFolderByTitle(bookmark.url, result.id, function(result) {
 
 					var destination = {
@@ -345,10 +314,11 @@ define(["jquery", "underscore", "jqueryhelpers", "chromeinterface", "alchemy", "
 
 					// Move the bookmark to that folder only if there is a successful result
 					if (result !== undefined && result !== null) {
-						me.moveBookmark(bookmark.id, destination, function(result){
+						chromex.moveBookmark(bookmark.id, destination, function(result){
 							callback.call(me, result, deferred);
 						});
 					} else {
+
 						callback.call(me, result, deferred);
 					}
 				});
@@ -396,7 +366,7 @@ define(["jquery", "underscore", "jqueryhelpers", "chromeinterface", "alchemy", "
 											index : 0
 										};
 
-										me.moveBookmark(myId, destination, function() {
+										chromex.moveBookmark(myId, destination, function() {
 											callback.call(me, undefined, deferred);
 										});
 									});
@@ -412,308 +382,6 @@ define(["jquery", "underscore", "jqueryhelpers", "chromeinterface", "alchemy", "
 			}
 		},
 
-        createFolderByCategoryEx : function (url, parentId)
-        {
-            deferred = $.Deferred();
-
-            alchemy.alchemyCategoryLookup(url, function(category) {
-                me.createFolder(category, parentId, deferred);
-            });
-
-            return deferred.promise();
-        },
-
-		/**
-		 * Creates a folder by the category of the given URL
-		 * Makes an Alchemy API request to check the category if it is not already cached
-		 * @param {string} url The url to lookup.
-		 * @param {string} parentId The parentId to create the folder in.
-		 * @param {function} callback The callback to run after creating the folder.
-		 */
-		createFolderByCategory : function (url, parentId, deferred)
-		{
-			var me = this;
-
-            alchemy.alchemyCategoryLookup(url, function(category) {
-				me.createFolder(category, parentId, deferred);
-			});
-		},
-
-		/**
-		 * Creates a folder by the title of the given URL
-		 * Makes an Alchemy API request to check the title if it is not already cached
-		 * @param {string} url The url to lookup.
-		 * @param {string} parentId The parentId to create the folder in.
-		 * @param {function} callback The callback to run after creating the folder.
-		 */
-		createFolderByTitle : function (url, parentId, callback) {
-			var me = this;
-            alchemy.alchemyTitleLookup(url, function(title) {
-				me.createFolder(title, parentId, callback);
-			});
-		},
-
-        alchemyCategoryObject : function()
-        {
-
-        },
-
-        //TODO figure out how to use template method to have category, title, and concept lookups share code
-        alchemyCategoryLookupEx : function(url, type)
-        {
-            var categorylookup = new AlchemyLookupObject();
-        },
-
-        AlchemyLookupObject : {
-            AlchemyLookupObject: function(request, preprocess, postproc, accept, resultprop) {
-              this.request = request;
-              this.preproc = preprocess;
-              this.postproc = postprocess;
-              this.accept = accept;
-              this.resultprop = resultprop;
-            },
-
-            request : $.noop(),
-            preproc : $.noop(),
-            postproc : $.noop(),
-            accept : $.noop(),
-            resultprop : "",
-
-            lookup: function(url) {
-                var me = this;
-                var newDef = $.Deferred(), //we will resolve this when next is done
-                    newUrl = me.preproc(url);
-
-                var ajax = me.request(newUrl).done(function(data, textStatus, jqXHR) {
-                    if(me.accept.call(me, data))
-                    {
-                        var result = data[me.resultprop];
-                        me.postproc.call(me, result);
-
-                        newDef.resolve(result);
-                    }
-                    else
-                    {
-                        newDef.reject();
-                    }
-                });
-
-                return newDef.promise();
-            }
-        },
-
-		/**
-		 * Makes an Alchemy API request to check the category if it is not already cached
-		 * TODO merge category and title functions together
-		 * @param {string} url The url to lookup.
-		 * @param {function} callback The callback to run after the REST request completes.
-		 */
-		alchemyCategoryLookup : function (url, callback)
-		{
-			var me = this,
-				cachedData = jhelpers.jQueryStorageGetValue(url),
-				baseUrl = me.getBaseUrl(url);
-
-			// Check if there is cached data
-			if(cachedData === null || cachedData.category === undefined) {
-				console.log("Making a CATEGORY request for - ", url);
-
-				// If not, make an API request.
-                alchemy.alchemyCategory(url, function(data, textStatus, jqXHR) {
-
-					var category = data.category,
-						status = data.status,
-						statusInfo = data.statusInfo,
-						score = data.score;
-
-					// Check the status first
-					if (status === me.config.okStatus && score && category) {
-						// If the score of the result is horrible, redo the whole thing using the baseUrl (if not already using it)
-						score = data.score;
-
-						if (score < me.config.categoryErrorScore && baseUrl !== url ) {
-							// Redo the categorization with the base URL because the result was not good enough
-							console.log("*** REDOING CAT ON SCORE *** with baseUrl = ", baseUrl, " and category ", category);
-
-							// Cache it as a redo
-							me.cacheCategory(cachedData, url, me.config.redoCode);
-
-                            alchemy.alchemyCategoryLookup(baseUrl, callback);
-
-						} else {
-							// Cache the category
-							me.cacheCategory(cachedData, url, category);
-
-							// Invoke the callback
-							callback.call(me, category);
-						}
-					} else {
-						// Error handling
-						console.log("*****ERROR CAT********= ", data, " for url = " , url);
-						if(statusInfo === me.config.dailyLimitError) {
-							// Daily limit reached must stop the chain
-                            chromex.chromeSendMessage(me.config.dailyLimitError);
-						} else if (baseUrl !== url) {
-							// Otherwise the page isn't HTML- fall back on the base URL.
-							console.log("*** REDOING CAT ON ERROR *** with baseUrl = ", baseUrl);
-							// Cache the redo
-							me.cacheCategory(cachedData, url, me.config.redoCode);
-							// Redo
-                            alchemy.alchemyCategoryLookup(baseUrl, callback);
-						} else {
-							// Cannot read this page- resolve with Unsorted after caching as unsorted
-							category = me.config.unsortedFolderName;
-
-							// Cache the category
-							me.cacheCategory(cachedData, url, category);
-
-							// Invoke the callback
-							callback.call(me, category);
-						}
-					}
-				});
-			} else {
-				// Cached category
-				var category = cachedData.category;
-
-				// If a Redo is cached, call it with the baseUrl
-				if (category === me.config.redoCode) {
-                    alchemy.alchemyCategoryLookup(baseUrl, callback);
-				} else {
-					// Invoke the callback
-					callback.call(me, category);
-				}
-			}
-		},
-
-		/**
-		 * Makes an Alchemy API request to check the title if it is not already cached
-		 * @param {string} url The url to lookup.
-		 * @param {function} callback The callback to run after the REST request completes.
-		 */
-		alchemyTitleLookup : function (url, callback) {
-				// Check local cache to see if the base URL has associated data.
-				var me = this,
-					baseUrl = me.getBaseUrl(url),
-					cachedData = jhelpers.jQueryStorageGetValue(baseUrl);
-
-				// If not, make an API request.
-				if(cachedData === null || cachedData.title === undefined)
-				{
-					console.log("Making a TITLE request for - ", url);
-                    alchemy.alchemyTitle(baseUrl, function(data, textStatus, jqXHR) {
-
-						var title = data.title,
-							category = undefined,
-							status = data.status,
-							statusInfo = data.statusInfo;
-
-						// Check the status first
-						if (status === me.config.okStatus && title) {
-
-							// Cache the title
-							me.cacheTitle(cachedData, baseUrl, title);
-
-							// Invoke the callback
-							callback.call(me, title);
-						} else {
-							// Error handling
-							console.log("*****ERROR TITLE********= ", data, " for url = " , url);
-							if(statusInfo === me.config.dailyLimitError) {
-								// Daily limit reached must stop the chain
-                                chromex.chromeSendMessage(me.config.dailyLimitError);
-							} else {
-								// Cannot read this page- resolve with Unsorted after caching as unsorted
-								title = me.config.unsortedFolderName;
-
-								// Cache the title
-								me.cacheTitle(cachedData, baseUrl, title);
-
-								// Invoke the callback
-								callback.call(me, title);
-							}
-						}
-					});
-				}
-				else
-				{
-					// Cached title
-					var title = cachedData.title;
-
-					// Invoke the callback
-					callback.call(me, title);
-				}
-		},
-
-		/**
-		 * Store the title (value) by the url (key)
-		 * This could be refactored along with with half of my code
-		 * @param {object} cachedData The cachedData object that was retrieved
-		 * @param {string} url The url to store by
-		 * @param {string} title The title to store
-		 */
-		cacheTitle : function(cachedData, url, title) {
-			// Category data may already exist
-			var category = undefined,
-				me = this;
-
-			if(cachedData !== null) {
-				category = cachedData.category;
-			}
-
-			// Cache the title in local storage
-            jhelpers.jQueryStorageSetValue(url, {title: title, category: category});
-		},
-
-		/**
-		 * Store the category (value) by the url (key)
-		 * @param {object} cachedData The cachedData object that was retrieved
-		 * @param {string} url The url to store by
-		 * @param {string} category The category to store
-		 */
-		cacheCategory : function(cachedData, url, category) {
-			// Title data may already exist
-			var title = undefined,
-				me = this;
-
-			if(cachedData !== null) {
-				title = cachedData.title;
-			}
-
-			// Cache the category in local storage
-            jhelpers.jQueryStorageSetValue(url, {title: title, category: category});
-		},
-
-		/**
-		 * Create folder (if it does not exist) with specified parentID with name, callback
-		 * @param {string} title The title of the folder.
-		 * @param {string} parentId The parentId to create the folder in.
-		 * @param {function} callback The callback to run after the folder is created.
-		 */
-		createFolder : function (title, parentId, callback) {
-				var me = this;
-
-				me.searchFolders(parentId, title,
-				function(ret) {
-					if(ret.length > 0){
-						// Folder already exists - invoke the callback with the first result
-						callback.call(me, ret[0]);
-					}
-					else {
-						// Create the folder and move to it
-						var folder = {
-							title : title,
-							parentId : parentId
-						};
-
-						// Create the folder
-						me.createBookmark(folder, function(result) {
-							// Invoke the callback
-							callback.call(me, result);
-						});
-					}
-				});
-		},
 
 		/**
 		 * Sort a sample of bookmarks in Other Bookmarks
@@ -721,7 +389,7 @@ define(["jquery", "underscore", "jqueryhelpers", "chromeinterface", "alchemy", "
 		 */
 		sortSample : function ()
 		{
-			this.sortToplevelBookmarks(this.config.sampleNumber);
+			this.sortToplevelBookmarks(config.sampleNumber);
 		},
 
 		/**
@@ -811,7 +479,7 @@ define(["jquery", "underscore", "jqueryhelpers", "chromeinterface", "alchemy", "
             chromex.chromeSendMessage(me.config.sortBeginMsg + "," + length);
 
 			// Set a local storage variable to sorting in progress
-			me.setIsOnManualSorting(true);
+            storage.setIsOnManualSorting(true);
 
 			// Detach create sort
 			me.detachCreateSort();
@@ -855,7 +523,7 @@ define(["jquery", "underscore", "jqueryhelpers", "chromeinterface", "alchemy", "
             asyncChain.always(
                 function() {
                     // Set that we are no longer sorting
-                    me.setIsOnManualSorting(false);
+                    storage.setIsOnManualSorting(false);
 
                     // Send a message to the UI saying we're done
                     chromex.chromeSendMessage(SmartBookmarkSorter.config.sortCompleteMsg);
@@ -903,13 +571,13 @@ define(["jquery", "underscore", "jqueryhelpers", "chromeinterface", "alchemy", "
 		 {
 			var me = this;
 			me.getOtherBookmarks(function(result) {
-				me.searchFolders(result.id, function(bookmark){return bookmark.url === undefined;}, function(ret) {
+                chromex.searchFolders(result.id, function(bookmark){return bookmark.url === undefined;}, function(ret) {
 					// Loop through
 					me.forEach(ret, function(bookmark) {
 						// If I'm empty, remove me
 						me.getBookmarkChildren(bookmark.id, function(results) {
 							if (results.length == 0) {
-								me.removeBookmark(bookmark.id, function(){});
+								chromex.removeBookmark(bookmark.id, function(){});
 							}
 						});
 					});
@@ -917,232 +585,6 @@ define(["jquery", "underscore", "jqueryhelpers", "chromeinterface", "alchemy", "
 
 			});
 		 },
-
-		/**
-		 * Sets the api key in local storage
-		 * @param {string} apikey The apikey to set
-		 * @config {string} [apiStorageKey] Local storage key for api key
-		 */
-		setApiKey : function (apikey)
-		{
-            jhelpers.jQueryStorageSetValue(this.config.apiStorageKey, apikey);
-		},
-
-		/**
-		 * Gets the api key in local storage
-		 * @config {string} [apiStorageKey] Local storage key for api key
-		 * @returns {string}
-		 */
-		getApiKey : function ()
-		{
-			return jhelpers.jQueryStorageGetValue(this.config.apiStorageKey);
-		},
-
-		/**
-		 * Sets auto create on
-		 * @param {bool} value The boolean to set
-		 * @config {string} [autoSortCreateKey] Local storage key auto create on
-		 */
-		setAutoOnCreate : function (value)
-		{
-            jhelpers.jQueryStorageSetValue(this.config.autoSortCreateKey, value);
-		},
-
-		/**
-		 * Gets the api key in local storage
-		 * @config {string} [autoSortCreateKey] Local storage key for api key
-		 * @returns {bool}
-		 */
-		getAutoOnCreate : function ()
-		{
-			return jhelpers.jQueryStorageGetValue(this.config.autoSortCreateKey);
-		},
-
-		/**
-		 * Sets the auto interval  in local storage
-		 * @config {string} [autoSortTimedKey] Local storage key for timed sort
-		 * @param {bool} value The boolean to set
-		 */
-		setAutoInterval : function (value)
-		{
-            jhelpers.jQueryStorageSetValue(this.config.autoSortTimedKey, value);
-		},
-
-		/**
-		 * Get the auto interval in local storage
-		 * @config {string} [autoSortTimedKey] Local storage key for timed sort
-		 * @returns {bool}
-		 */
-		getAutoInterval : function ()
-		{
-			return jhelpers.jQueryStorageGetValue(this.config.autoSortTimedKey);
-		},
-
-		/**
-		 * Sets the auto prioritize  in local storage
-		 * @config {string} [autoSortPriorityKey] Local storage key for priority sort
-		 * @param {bool} value The boolean to set
-		 */
-		setAutoPrioritize : function (value)
-		{
-            jhelpers.jQueryStorageSetValue(this.config.autoSortPriorityKey, value);
-		},
-
-		/**
-		 * Get the auto interval in local storage
-		 * @config {string} [autoSortPriorityKey] Local storage key for priority sort
-		 * @returns {bool}
-		 */
-		getAutoPrioritize : function ()
-		{
-			return jhelpers.jQueryStorageGetValue(this.config.autoSortPriorityKey);
-		},
-
-		/**
-		 * Sets the auto sort in local storage
-		 * @config {string} [autoSortActiveKey] Local storage key for auto sort on
-		 * @param {bool} value The boolean to set
-		 */
-		setAutoOn : function (value)
-		{
-            jhelpers.jQueryStorageSetValue(this.config.autoSortActiveKey, value);
-		},
-
-		/**
-		 * Gets the auto sort in local storage
-		 * @config {string} [autoSortActiveKey] Local storage key for auto sort on
-		 * @returns {bool}
-		 */
-		getAutoOn : function ()
-		{
-			return jhelpers.jQueryStorageGetValue(this.config.autoSortActiveKey);
-		},
-
-		/**
-		 * Set the old bookmark days in local storage
-		 * @config {string} [oldBookmarkDaysKey] Local storage key for old bookmark days
-		 * @param {int} value The int to set
-		 */
-		setOldBookmarkDays : function (value)
-		{
-            jhelpers.jQueryStorageSetValue(this.config.oldBookmarkDaysKey, value);
-		},
-
-		/**
-		 * Get the old bookmark days in local storage
-		 * @config {string} [autoSortPriorityKey] Local storage key for old bookmark days
-		 * @config {string} [oldBookmarkDaysDefault] Default old bookmark days
-		 * @returns {int}
-		 */
-		getOldBookmarkDays : function ()
-		{
-			var oldBookmarkDays = jhelpers.jQueryStorageGetValue(this.config.oldBookmarkDaysKey);
-
-			return oldBookmarkDays === null ? this.config.oldBookmarkDaysDefault : oldBookmarkDays;
-		},
-
-		/**
-		 * Set the sorting in progress  in local storage
-		 * @config {string} [isSortingKey] Sorting in progress key
-		 * @param {int} value The int to set
-		 */
-		setIsSorting : function (value)
-		{
-            jhelpers.jQueryStorageSetValue(this.config.isSortingKey, value);
-		},
-
-		/**
-		 * Get the sorting in progress from storage
-		 * @config {string} [isSortingKey] Sorting in progress key
-		 * @returns {boolean}
-		 */
-		getIsSorting : function()
-		{
-			var me = this,
-				manualSorting = me.getIsOnManualSorting(),
-				createSorting = me.getIsOnCreateSorting(),
-				alarmSorting = me.getIsOnAlarmSorting(),
-				isSorting = manualSorting || createSorting || alarmSorting;
-
-			return isSorting;
-
-		},
-
-		/**
-		 * Set the sorting in progress for the manual sorting in local storage
-		 * @config {string} [isOnManualSortingKey] Sorting in progress key
-		 * @param {int} value The int to set
-		 */
-		setIsOnManualSorting : function (value)
-		{
-            jhelpers.jQueryStorageSetValue(this.config.isOnManualSortingKey, value);
-		},
-
-		/**
-		 * Get the sorting in progress from storage
-		 * @config {string} [isOnManualSortingKey] Sorting in progress key
-		 * @returns {boolean}
-		 */
-		getIsOnManualSorting : function()
-		{
-			return jhelpers.jQueryStorageGetValue(this.config.isOnManualSortingKey) || false;
-
-		},
-
-		/**
-		 * Set the sorting in progress for the on created listener in local storage
-		 * @config {string} [isOnCreateSortingKey] Sorting in progress key
-		 * @param {int} value The int to set
-		 */
-		setIsOnCreateSorting : function (value)
-		{
-            jhelpers.jQueryStorageSetValue(this.config.isOnCreateSortingKey, value);
-		},
-
-		/**
-		 * Get the sorting for the on created listener in progress from storage
-		 * @config {string} [isOnCreateSortingKey] Sorting in progress key
-		 * @returns {boolean}
-		 */
-		getIsOnCreateSorting : function()
-		{
-			return jhelpers.jQueryStorageGetValue(this.config.isOnCreateSortingKey) || false;
-
-		},
-
-		/**
-		 * Set the sorting in progress  in local storage
-		 * @config {string} [isOnIntervalSortingKey] Sorting in progress key
-		 * @param {int} value The int to set
-		 */
-		setIsOnAlarmSorting : function (value)
-		{
-            jhelpers.jQueryStorageSetValue(this.config.isOnIntervalSortingKey, value);
-		},
-
-		/**
-		 * Get the sorting in progress from storage
-		 * @config {string} [isOnIntervalSortingKey] Sorting in progress key
-		 * @returns {boolean}
-		 */
-		getIsOnAlarmSorting : function()
-		{
-			return jhelpers.jQueryStorageGetValue(this.config.isOnIntervalSortingKey) || false;
-
-		},
-
-		/**
-		 * Get the base url of a qualified URL
-		 * @param {string} url The qualified url to slice
-		 * @returns {string}
-		 */
-		getBaseUrl : function (url)
-		{
-			var urlObj = $.url(url);
-			var host = urlObj.attr('host');
-			var protocol = urlObj.attr('protocol');
-			return protocol + '://' + host;
-		},
 
 		/**
 		 * Get the UTC date
@@ -1187,8 +629,85 @@ define(["jquery", "underscore", "jqueryhelpers", "chromeinterface", "alchemy", "
 			if (exception != Break)
 			  throw exception;
 			}
-		}
+		},
+        createFolderByCategoryEx : function (url, parentId)
+        {
+            deferred = $.Deferred();
 
+            alchemy.alchemyCategoryLookup(url, function(category) {
+                me.createFolder(category, parentId, deferred);
+            });
 
-	}
+            return deferred.promise();
+        },
+
+        /**
+         * Creates a folder by the category of the given URL
+         * Makes an Alchemy API request to check the category if it is not already cached
+         * @param {string} url The url to lookup.
+         * @param {string} parentId The parentId to create the folder in.
+         * @param {function} callback The callback to run after creating the folder.
+         */
+        createFolderByCategory : function (url, parentId, deferred)
+        {
+            var me = this;
+
+            alchemy.alchemyCategoryLookup(url, function(category) {
+
+                me.createFolder(category, parentId, deferred);
+            });
+        },
+
+        /**
+         * Creates a folder by the title of the given URL
+         * Makes an Alchemy API request to check the title if it is not already cached
+         * @param {string} url The url to lookup.
+         * @param {string} parentId The parentId to create the folder in.
+         * @param {function} callback The callback to run after creating the folder.
+         */
+        createFolderByTitle : function (url, parentId, callback) {
+            var me = this;
+            alchemy.alchemyTitleLookup(url, function(title) {
+                me.createFolder(title, parentId, callback);
+            });
+        },
+
+        /**
+         * Create folder (if it does not exist) with specified parentID with name, callback
+         * @param {string} title The title of the folder.
+         * @param {string} parentId The parentId to create the folder in.
+         * @param {function} callback The callback to run after the folder is created.
+         */
+        createFolder : function (title, parentId, callback) {
+            var me = this,
+                deferred = $.Deferred().done(function(ret)
+                {
+
+                    console.log("createFolder", ret);
+                    if(ret.length > 0){
+                        // Folder already exists - invoke the callback with the first result
+                        callback.call(me, ret[0]);
+                    }
+                    else {
+                        // Create the folder and move to it
+                        var folder = {
+                            title: title,
+                            parentId: parentId
+                        };
+                        console.log("Folder", folder);
+                        // Create the folder
+                        chromex.createBookmark(folder, function (result) {
+                            // Invoke the callback
+
+                            callback.call(me, result);
+                        });
+                    }
+
+                });
+
+            chromex.searchFolders(parentId, title, deferred);
+
+        }
+
+	};
 });

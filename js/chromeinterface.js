@@ -12,7 +12,7 @@ define(["jquery"], function($){
     return {
         searchFolders: function (parentId, name, deferred) {
             var me = this;
-            console.log("MAJOR PROBLEMS", name, parentId)
+            console.log("MAJOR PROBLEMS", name, parentId, deferred);
             chrome.bookmarks.search(name, function (results) {
 
                 if (_.isArray(results)) {
@@ -94,7 +94,6 @@ define(["jquery"], function($){
          */
         getBookmarkChildren: function (id, callback) {
 
-            console.log("ID = ", id, callback)
             chrome.bookmarks.getChildren(id, callback);
         },
 
@@ -242,5 +241,5 @@ define(["jquery"], function($){
         chromeOnImportEnd: function (callback) {
             chrome.bookmarks.onImportEnded.addListener(callback);
         }
-    }
+    };
 });

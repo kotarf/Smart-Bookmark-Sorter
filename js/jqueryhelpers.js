@@ -9,11 +9,11 @@ define(["jquery", "jquery.total-storage", "jquery.whensync"], function($) {
          * Make a REST request with JQuery. Wraps around JQuery
          * @param {string} requestURL The endpoint request URL
          * @param {object} data The data to send
-         * @param {function} callback The callback to run after request completes
          * @param {string} dataType The data type to return back
+         * @returns {promise} Returns a promise
          */
-        jqueryRESTEx: function (requestURL, data, callback, dataType) {
-            return jQuery.get(requestURL, data, callback, dataType);
+        jqueryRESTx: function (requestURL, data, dataType) {
+            return $.get(requestURL, data, $.noop, dataType);
         },
 
         /**
@@ -52,6 +52,19 @@ define(["jquery", "jquery.total-storage", "jquery.whensync"], function($) {
          */
         jQueryWhenSync: function (scope, functions) {
             return $.whenSync.apply(scope, functions);
+        },
+
+        /**
+         * Get the base url of a qualified URL
+         * @param {string} url The qualified url to slice
+         * @returns {string}
+         */
+        getBaseUrl : function (url)
+        {
+            var urlObj = $.url(url);
+            var host = urlObj.attr('host');
+            var protocol = urlObj.attr('protocol');
+            return protocol + '://' + host;
         }
     }
 });
