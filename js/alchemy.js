@@ -91,7 +91,7 @@ define(["underscore", "jqueryhelpers", "storage", "config"], function(_, jhelper
             jhelpers.jqueryREST(requestURL, data, callback, dataType);
         },
 
-        alchemyRequest: function(url, requestUrl) {
+        alchemyRequest: function(requestUrl, url) {
             // Get the api key from local storage
             var me = this,
                 apikey = storage.getApiKey();
@@ -106,12 +106,174 @@ define(["underscore", "jqueryhelpers", "storage", "config"], function(_, jhelper
             var dataType = "json";
 
             //API request for getting the category of a URL
-            return jhelpers.jqueryRESTx(requestURL, data, dataType);
+            return jhelpers.jqueryRESTx(requestUrl, data, dataType);
         },
+
+        AlchemyObject : {
+            AlchemyObject: function(request, preprocess, accept, resultprop, cache) {
+                this.request = request;
+                this.preproc = preprocess;
+                this.accept = accept;
+                this.resultprop = resultprop;
+                this.cache = cache;
+            },
+
+            request : $.noop, // request function to use
+            preproc : function(url) { return url; }, // pre processing on input url
+            accept : $.noop, // given the result data, do you accept it?
+            resultprop : {}, // result property of the JSON data
+            cache: $.noop,
+
+            getData: function(url) {
+                var me = this,
+                    def = $.Deferred(), //we will resolve this when next is done
+                    newUrl = me.preproc(url);
+
+                var cacheData = me.cache(newUrl, me.resultprop);
+
+                if(_.isEmpty(cacheData)) {
+                    me.request(newUrl).done(function (data) {
+                        var status = data.status;
+                        if(status === config.okStatus)
+                        {
+                            if (me.accept(data)) {
+                                var result = data[me.resultprop];
+
+                                me.cache(newUrl, me.resultprop, result);
+
+                                def.resolve({result: result, data:data});
+                            }
+                            else
+                            {
+                                def.reject({data: data});
+                            }
+                        }
+                        else
+                        {
+                            def.reject({data: data});
+                        }
+                    });
+                }
+                else
+                {
+                    console.log("Cached data is", cacheData);
+                    def.resolve({result: cacheData[me.resultprop]});
+                }
+
+                return def.promise();
+            },
+
+
+
+            lookup: function(url)
+            {
+                var promise = getData(url),
+                    dfd = $.Deferred(),
+                    me = this;
+
+                promise.done(function(data) {
+                    // resolve the deferred object
+                    var text = data[me.resultprop];
+                    dfd.resolve(text);
+
+                }).fail(function(data) {
+                    var status = data.status,
+                        statusInfo = data.statusInfo;
+
+                    // if status is ok, redo on baseUrl for better score
+                    if(status === config.okStatus)
+                    {
+
+                    }
+                    // status is not ok
+                    if(status === config.errorStatus)
+                    {
+                        // we have reached our daily limit
+                        if(statusInfo === config.dailyLimitError)
+                        {
+                            dfd.fail(statusInfo);
+                        }
+                        // the page is not html (is an image)
+                        else if(statusInfo === config.pageNotHtmlError)
+                        {
+                            // Template override
+                            // Cache as a redo
+
+
+                            // Redo with baseUrl
+                        }
+                        else
+                        {
+                            // Exhausted all options- store as "unsorted"
+                            var ret = config.unsortedFolderName;
+
+                            // Cache the result as unsorted
+                            me.cachefunct(undefined, url, config.unsortedFolderName);
+
+                            df.resolve(config.unsortedFolderName);
+                        }
+
+                    }
+
+                });
+
+                // Return a promise to get the category or title of a URL from either the cache or the alchemy service
+                return dfd.promise();
+
+            }
+        },
+
+
+        /*
+            var promise = lookup(url);
+            promise.done(...).fail(...)
+            //.fail(if status == ok, if status == dailyLimitError,
+
+            alchemyCategoryLookup : function(url, callback)
+            {
+                // If no cached data
+                    // Request
+                        // If status is ok
+                            // If score acceptable
+
+                            // Else
+                                <Template>
+
+                        // Else
+
+                // Else use cache data
+
+            }
+
+         */
+
 
         alchemyCategoryObject : function()
         {
+            var request = _.partial(this.alchemyRequest, config.requestCategoryURL),
+                accept = function(data) {
+                    return data.score > config.categoryErrorScore;
 
+                },
+                me = this;
+
+
+            var categoryObject = Object.create(this.AlchemyObject, {
+                request: {
+                    value: request
+                },
+                accept: {
+                    value:accept
+                },
+                resultprop: {
+                    value:config.categoryProperty
+                },
+                cache: {
+                    value:me.cache
+                }
+            });
+
+            return categoryObject;
         },
 
         //TODO figure out how to use template method to have category, title, and concept lookups share code
@@ -120,55 +282,6 @@ define(["underscore", "jqueryhelpers", "storage", "config"], function(_, jhelper
             var categorylookup = new AlchemyLookupObject();
         },
 
-        AlchemyLookupObject : {
-            AlchemyLookupObject: function(request, preprocess, accept, resultprop, cache) {
-                this.request = request;
-                this.preproc = preprocess;
-                this.accept = accept;
-                this.resultprop = resultprop;
-            },
-
-            request : $.noop, // request function to use
-            preproc : $.noop, // pre processing on input url
-            accept : $.noop, // given the result data, do you accept it?
-            resultprop : {}, // result property of the JSON data
-            cachefunct: $.noop,
-
-            cache: function(url) {
-                var me = this,
-                    def = $.Deferred(),
-                    newUrl = me.preproc(url);
-
-                return me.cache(newUrl);
-            },
-
-            lookup: function(url) {
-                var me = this,
-                    def = $.Deferred(), //we will resolve this when next is done
-                    newUrl = me.preproc(url);
-
-                var cacheData = me.cache(newUrl);
-
-                if(_.isUndefined(cachedData)) {
-                    me.request(newUrl).done(function (data) {
-                        if (me.accept(data)) {
-                            var result = data[me.resultprop];
-
-                            def.resolve(result);
-                        }
-                        else {
-                            def.reject();
-                        }
-                    });
-                }
-                else
-                {
-                    def.resolve(cacheData[this.resultprop]);
-                }
-
-                return def.promise();
-            }
-        },
 
         /**
          * Makes an Alchemy API request to check the category if it is not already cached
@@ -314,6 +427,20 @@ define(["underscore", "jqueryhelpers", "storage", "config"], function(_, jhelper
             }
         },
 
+        cache: function(url, property, data)
+        {
+            var cachedData = jhelpers.jQueryStorageGetValue(url) || {};
+
+            if(property && data)
+            {
+                cachedData[property] = data;
+
+                jhelpers.jQueryStorageSetValue(url, cachedData);
+            }
+
+            return cachedData;
+        },
+
         /**
          * Store the title (value) by the url (key)
          * This could be refactored along with with half of my code
@@ -325,6 +452,11 @@ define(["underscore", "jqueryhelpers", "storage", "config"], function(_, jhelper
             // Category data may already exist
             var category = undefined,
                 me = this;
+
+            if(_.isNull(cachedData))
+            {
+                cachedData = jhelpers.jQueryStorageGetValue(url);
+            }
 
             if(cachedData !== null) {
                 category = cachedData.category;
@@ -344,6 +476,11 @@ define(["underscore", "jqueryhelpers", "storage", "config"], function(_, jhelper
             // Title data may already exist
             var title = undefined,
                 me = this;
+
+            if(_.isNull(cachedData))
+            {
+                cachedData = jhelpers.jQueryStorageGetValue(url);
+            }
 
             if(cachedData !== null) {
                 title = cachedData.title;

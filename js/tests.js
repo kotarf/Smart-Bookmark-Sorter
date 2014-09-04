@@ -1,8 +1,14 @@
-define(["jquery", "underscore", "sortapi", "alchemy", "storage" ], function($, _, SmartBookmarkSorter, alchemy, storage) {
+define(["jquery", "underscore", "sortapi", "alchemy", "storage", "jqueryhelpers", "config" ], function($, _, SmartBookmarkSorter, alchemy, storage, jhelpers, config) {
 
     return function(chrome) {
 
         QUnit.begin(function () {
+            var items = $.totalStorage.getAll();
+
+            for (var i = 0; i < items.length; ++i) {
+                $.totalStorage.deleteItem(items[i].key);
+            }
+
             storage.setApiKey("");
         });
 
@@ -10,38 +16,105 @@ define(["jquery", "underscore", "sortapi", "alchemy", "storage" ], function($, _
             ok(1 == "1", "Passed!");
         });
 
-        asyncTest("Category request is successfully made", 1, function () {
+        asyncTest("Category request is successfully made", function () {
 
-            var callback = function (data, textStatus, jqXHR) {
-                var category = data.category,
-                    status = data.status,
-                    statusInfo = data.statusInfo,
-                    score = data.score;
+            var promise = alchemy.alchemyRequest(config.requestCategoryURL, "http://stackoverflow.com");
 
-                equal(category, "recreation");
+            promise.always(function(data) {
+                equal(data.category, "recreation");
                 start();
-            };
+            });
 
-            alchemy.alchemyCategory("http://stackoverflow.com", callback);
         });
 
-        asyncTest("Title request is successfully made", 1, function () {
+        asyncTest("Title request is successfully made", function () {
 
-            var callback = function (data, textStatus, jqXHR) {
-                var title = data.title,
-                    status = data.status,
-                    statusInfo = data.statusInfo,
-                    score = data.score;
+            var promise = alchemy.alchemyRequest(config.requestTitleURL, "http://stackoverflow.com");
 
-                equal(title, "Stack Overflow");
+            promise.always(function(data) {
+                equal(data.title, "Stack Overflow");
                 start();
-            };
-
-            alchemy.alchemyTitle("http://stackoverflow.com", callback);
+            });
         });
 
+        // Can cache a category value and destroy it
+        test("Store category", function() {
+            alchemy.cache("http://google.com", config.categoryProperty, "recreation");
 
-        asyncTest("A single bookmark is sorted", 2, function () {
+            var cachedData = alchemy.cache("http://google.com");
+
+            ok(cachedData);
+        });
+
+        // Category template object can be generated (singleton on module)
+        test("Category object can be created", function() {
+           var categoryObject = alchemy.alchemyCategoryObject();
+
+            ok(categoryObject);
+
+        });
+
+        // Category promise is returned with valid data
+        asyncTest("Category promise, new, with valid URL that has a high score", function() {
+            var templateObject = alchemy.alchemyCategoryObject();
+
+            var promise = templateObject.getData("http://www.ge.com/");
+
+            ok(promise);
+
+            promise.done(function(args) {
+                strictEqual(args.data.status, config.okStatus, "Status must be OK");
+            });
+
+            promise.fail(function(args) {
+                ok(false);
+            });
+
+            promise.always(function() {
+               start();
+            });
+        });
+
+        // Category promise with a valid URL that has a low score
+        /*
+        asyncTest("Category promise, new, with a low score on a valid URL", function() {
+
+        });
+        */
+
+
+        // Category promise with an invalid URL and no cache causes rejection
+        asyncTest("Category promise, new, with invalid URL", function() {
+            var templateObject = alchemy.alchemyCategoryObject();
+
+            var promise = templateObject.getData("www.thiswebsitedoesnotexist123123123.com");
+
+            ok(promise);
+
+            promise.fail(function(ret) {
+                strictEqual(ret.data.status, config.errorStatus, "Status must be an error in this failed promise");
+            });
+
+            promise.done(function(data) {
+                ok(false);
+            });
+
+            promise.always(function() {
+                start();
+            });
+        });
+
+        // Category promise, old, with a valid URL that has a high score
+
+        // Title promise is returned
+
+
+
+        // URL with a poor score causes the promise to redo (category)
+
+        // Sort one bookmark
+        /*
+        asyncTest("A single bookmark is sorted", function () {
             var callback = function () {
 
                 chrome.bookmarks.search("Stack Overflow Test", function (results) {
@@ -72,13 +145,7 @@ define(["jquery", "underscore", "sortapi", "alchemy", "storage" ], function($, _
             });
 
         });
+        */
 
-        QUnit.done(function () {
-            var items = $.totalStorage.getAll();
-
-            for (var i = 0; i < items.length; ++i) {
-                $.totalStorage.deleteItem(items[i].key);
-            }
-        });
     };
 });

@@ -25,12 +25,18 @@ define({
     unsortedFolderName :		"unsorted",
     redoCode :					"_REDO",
     okStatus : 					"OK",
+    errorStatus :               "ERROR",
     dailyLimitError : 			"daily-transaction-limit-exceeded",
+    invalidApiKeyError :        "invalid-api-key",
+    cannotRetrieveError :       "cannot-retrieve",
+    pageNotHtmlError :          "page-is-not-html",
     sortBeginMsg :				"sortBegin",
     sortSuccessfulMsg : 		"sortSuccessful",
     sortCompleteMsg : 			"sortComplete",
     isSortingKey :				"isSorting",
     isOnCreateSortingKey :		"isSortingOnCreate",
     isOnIntervalSortingKey :	"isSortingInterval",
-    isOnManualSortingKey :		"isSortingManual"
+    isOnManualSortingKey :		"isSortingManual",
+    categoryProperty:           "category",
+    titleProperty:              "title"
 });
