@@ -12,8 +12,8 @@ define(["jquery", "jquery.total-storage", "jquery.whensync"], function($) {
          * @param {string} dataType The data type to return back
          * @returns {promise} Returns a promise
          */
-        jqueryRESTx: function (requestURL, data, dataType) {
-            return $.get(requestURL, data, $.noop, dataType);
+        jqueryRESTx: function (requestURL, data, callback, dataType) {
+            return $.get(requestURL, data, callback, dataType);
         },
 
         /**

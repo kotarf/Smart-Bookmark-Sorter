@@ -6,7 +6,7 @@ require.config({
    baseUrl: "/js",
    paths: {
        sortapi: '../bookmarksorter',
-       'QUnit': 'qunit-1.14.0'
+       'QUnit': 'qunit-1.18.0'
    },
    shim: {
        'QUnit' : {

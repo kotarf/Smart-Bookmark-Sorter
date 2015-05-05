@@ -5,13 +5,15 @@ requirejs.config({
         app: '../app',
 
         jquery: [
-            'jquery' //local
-        ]
+            'jquery' // local copy
+        ],
+
+        sortapi: '../bookmarksorter'
+
     },
 
     shim: {
         'jquery.total-storage' : ['jquery']
-
     }
 
 });

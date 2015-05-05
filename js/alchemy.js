@@ -17,7 +17,7 @@ define(["underscore", "jqueryhelpers", "storage", "config"], function(_, jhelper
          * @config {string} [outputMode] Output mode for the request (like json)
          * @config {string} [requestCategoryURL] Endpoint for Alchemy category requests
          */
-        alchemyKeyTest : function (apiKey, callbackA, callbackB, argsA, argsB, scope) {
+        alchemyKeyTest : function (apiKey) {
             //Create a local data object for the API request
             var url = "http://www.google.com",
                 me = this;
@@ -28,14 +28,18 @@ define(["underscore", "jqueryhelpers", "storage", "config"], function(_, jhelper
                 outputMode: config.outputMode
             };
 
-            var dataType = "json";
-            var requestURL = config.requestCategoryURL;
+            var dataType = "json",
+                requestURL = config.requestCategoryURL,
+                dfd = $.Deferred();
 
             var apiCallback = function (data, textStatus, jqXHR) {
-                data.statusInfo === "invalid-api-key" ? callbackB.apply(argsB, scope) : callbackA.apply(argsA, scope);
+                data.status === "ERROR" ? dfd.reject(data) : dfd.resolve(data);
             };
-            //API request for getting the category of a URL
-            jhelpers.jqueryREST(requestURL, data, apiCallback, dataType);
+
+            // API request for getting the category of a URL
+            jhelpers.jqueryRESTx(requestURL, data, apiCallback, dataType);
+
+            return dfd.promise();
         },
 
         /**
@@ -45,7 +49,7 @@ define(["underscore", "jqueryhelpers", "storage", "config"], function(_, jhelper
          * @config {string} [outputMode] Output mode for the request (like json)
          * @config {string} [requestCategoryURL] Endpoint for Alchemy category requests
          */
-        alchemyCategory : function (url, callback) {
+        alchemyCategory : function (url) {
             // Get the api key from local storage
             console.log("Alchemy Category");
             var me = this,
@@ -58,11 +62,13 @@ define(["underscore", "jqueryhelpers", "storage", "config"], function(_, jhelper
                 outputMode: config.outputMode
             };
 
-            var dataType = "json";
-            var requestURL = config.requestCategoryURL;
+            var dataType = "json",
+                requestURL = config.requestCategoryURL;
+
             console.log("category request", requestURL, data, callback)
+
             // API request for getting the category of a URL
-            jhelpers.jqueryREST(requestURL, data, callback, dataType);
+            return jhelpers.jqueryRESTx(requestURL, data, $.noop(), dataType);
         },
 
         /**
@@ -72,7 +78,7 @@ define(["underscore", "jqueryhelpers", "storage", "config"], function(_, jhelper
          * @config {string} [outputMode] Output mode for the request (like json)
          * @config {string} [requestTitleURL] Endpoint for Alchemy category requests
          */
-        alchemyTitle : function (url, callback) {
+        alchemyTitle : function (url) {
             // Get the api key from local storage
             var me = this,
                 apikey = storage.getApiKey();
@@ -84,11 +90,11 @@ define(["underscore", "jqueryhelpers", "storage", "config"], function(_, jhelper
                 outputMode: config.outputMode
             };
 
-            var dataType = "json";
-            var requestURL = config.requestTitleURL;
+            var dataType = "json",
+                requestURL = config.requestTitleURL;
 
             //API request for getting the category of a URL
-            jhelpers.jqueryREST(requestURL, data, callback, dataType);
+            return jhelpers.jqueryRESTx(requestURL, data, callback, dataType);
         },
 
         alchemyRequest: function(requestUrl, url) {
@@ -250,13 +256,11 @@ define(["underscore", "jqueryhelpers", "storage", "config"], function(_, jhelper
 
         alchemyCategoryObject : function()
         {
-            var request = _.partial(this.alchemyRequest, config.requestCategoryURL),
-                accept = function(data) {
-                    return data.score > config.categoryErrorScore;
-
-                },
-                me = this;
-
+            var request = _.partial(this.alchemyRequest, config.requestCategoryURL);
+            var accept = function(data) {
+                return data.score > config.categoryErrorScore;
+            };
+            var me = this;
 
             var categoryObject = Object.create(this.AlchemyObject, {
                 request: {

@@ -83,8 +83,21 @@ define(["jquery"], function($){
          * @param {string} query The callback to run with the other bookmarks folder
          * @param {function} callback The callback to run with the results of the search
          */
-        searchBookmarks: function (query, callback) {
-            return chrome.bookmarks.search(query, callback)
+        searchBookmarks: function (query) {
+            var dfd = $.Deferred();
+
+            chrome.bookmarks.search(query, function(results) {
+                if(results === undefined || results.length === 0)
+                {
+                    dfd.reject(results);
+                }
+                else
+                {
+                    dfd.resolve(results);
+                }
+            });
+
+            return dfd.promise();
         },
 
         /**
@@ -136,10 +149,16 @@ define(["jquery"], function($){
         /**
          * Create a bookmark or folder
          * @param {object} bookmark The bookmark to create
-         * @param {function} callback The callback to run after creating the bookmark
+         * @return {promise} A promise to create a bookmark or folder.
          */
-        createBookmark: function (bookmark, callback) {
-            chrome.bookmarks.create(bookmark, callback);
+        createBookmark: function (bookmark) {
+            var dfd = $.Deferred();
+
+            chrome.bookmarks.create(bookmark, function(result) {
+                dfd.resolve(result);
+            });
+
+            return dfd.promise();
         },
 
         /**

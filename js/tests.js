@@ -1,4 +1,4 @@
-define(["jquery", "underscore", "sortapi", "alchemy", "storage", "jqueryhelpers", "config" ], function($, _, SmartBookmarkSorter, alchemy, storage, jhelpers, config) {
+define(["jquery", "underscore", "sortapi", "alchemy", "storage", "jqueryhelpers", "config", "chromeinterface" ], function($, _, SmartBookmarkSorter, alchemy, storage, jhelpers, config, chromex) {
 
     return function(chrome) {
 
@@ -55,23 +55,26 @@ define(["jquery", "underscore", "sortapi", "alchemy", "storage", "jqueryhelpers"
         });
 
         // Category promise is returned with valid data
-        asyncTest("Category promise, new, with valid URL that has a high score", function() {
+        test("Category promise, new, with valid URL that has a low score", function(assert) {
+            assert.expect(3);
+
+            var done1 = assert.async(),
+                done2 = assert.async();
+
             var templateObject = alchemy.alchemyCategoryObject();
 
             var promise = templateObject.getData("http://www.ge.com/");
 
             ok(promise);
 
-            promise.done(function(args) {
-                strictEqual(args.data.status, config.okStatus, "Status must be OK");
+            promise.always(function(result) {
+                strictEqual(result.data.status, config.okStatus, "Status must be OK");
+                done1();
             });
 
-            promise.fail(function(args) {
-                ok(false);
-            });
-
-            promise.always(function() {
-               start();
+            promise.fail(function() {
+                ok(true);
+                done2();
             });
         });
 
@@ -103,6 +106,60 @@ define(["jquery", "underscore", "sortapi", "alchemy", "storage", "jqueryhelpers"
                 start();
             });
         });
+
+        // Create a bookmark (folder) via a promise
+        asyncTest("Chrome API - create a folder must return a promise", function() {
+            var randomString = Math.floor(Math.random() * 100).toString();
+
+            var bookmark = {
+                title: randomString
+            };
+
+            var promise = chromex.createBookmark(bookmark);
+
+            promise.done(function(result) {
+                equal(result.title, randomString,"Chrome found the bookmark we created");
+                chrome.bookmarks.search(randomString, function(results) {
+                    ok(results.length);
+
+                   // chrome.bookmarks.remove(results[0].id, $.noop());
+                });
+            });
+
+            promise.always(function() {
+                start();
+            });
+        });
+
+        // Search bookmarks via a promise
+        asyncTest("Chrome API - search bookmarks and return a promise", function() {
+            var randomString = Math.floor(Math.random() * 100).toString();
+
+            var bookmark = {
+                title: randomString
+            };
+
+            chrome.bookmarks.create(bookmark, function(result) {
+                start();
+
+                var query = {
+                    title: randomString
+                };
+
+                var promise = chromex.searchBookmarks(query)
+
+                promise.always(function(results) {
+                    equal(results[0].title, randomString, "We found the bookmark that we created via a promise.");
+                    chrome.bookmarks.remove(results[0].id, $.noop());
+                });
+            });
+        });
+
+        // Search bookmarks includes folders in the results (this is a recent Chrome change)
+
+
+
+        // Destroy a bookmark (folder) via a promise
 
         // Category promise, old, with a valid URL that has a high score
 
