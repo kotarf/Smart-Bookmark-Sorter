@@ -26,4 +26,4 @@ requirejs.config({
 
 });
 
-requirejs(['sortapi', 'jquery', 'domReady'], function(SmartBookmarkSorter, $) {});
+require(['sortapi', 'jquery', 'domReady'], function(SmartBookmarkSorter, $) {});

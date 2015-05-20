@@ -1,7 +1,7 @@
 /**
  * Created by kotarf on 8/24/14.
  */
-define(["jquery", "jquery.total-storage", "jquery.whensync"], function($) {
+define(["jquery", "lib/jquery.total-storage", "lib/jquery.whensync"], function($) {
     /******* JQUERY HELPERS*******/
 
     return {

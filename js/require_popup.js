@@ -2,20 +2,23 @@ requirejs.config({
     baseUrl: 'js',
 
     paths: {
-        app: '../app',
+        app: '../',
 
-        jquery: [
-            'jquery' // local copy
-        ],
+        lib: 'lib',
 
         sortapi: '../bookmarksorter'
-
     },
 
     shim: {
-        'jquery.total-storage' : ['jquery']
+        'lib/jquery.total-storage' : ['jquery'],
+        'lib/jquery.mjs.nestedSortable'  : ['jquery'],
+        'lib/jquery.browser' : ['jquery'],
+        'lib/Queue.src' : []
     }
 
 });
 
-requirejs(['../popup', 'jquery', 'domReady'], function(SmartBookmarkSorter, $) {});
+require(['app/popup', 'jquery', 'domReady'], function(SmartBookmarkSorter, $) {
+        $(".spinner").hide();
+        $("#tabs").show();
+});

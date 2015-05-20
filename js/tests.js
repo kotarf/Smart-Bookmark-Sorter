@@ -1,4 +1,4 @@
-define(["jquery", "underscore", "sortapi", "alchemy", "storage", "jqueryhelpers", "config", "chromeinterface" ], function($, _, SmartBookmarkSorter, alchemy, storage, jhelpers, config, chromex) {
+define(["jquery", "underscore", "sortapi", "alchemy", "storage", "jqueryhelpers", "config", "chromeinterface", "sharedbrowser" ], function($, _, SmartBookmarkSorter, alchemy, storage, jhelpers, config, chromex, crossbrows) {
 
     return function(chrome) {
 
@@ -16,7 +16,8 @@ define(["jquery", "underscore", "sortapi", "alchemy", "storage", "jqueryhelpers"
             ok(1 == "1", "Passed!");
         });
 
-        asyncTest("Category request is successfully made", function () {
+        QUnit.module("Alchemy requests");
+        QUnit.asyncTest("Category request is successfully made", function () {
 
             var promise = alchemy.alchemyRequest(config.requestCategoryURL, "http://stackoverflow.com");
 
@@ -27,7 +28,7 @@ define(["jquery", "underscore", "sortapi", "alchemy", "storage", "jqueryhelpers"
 
         });
 
-        asyncTest("Title request is successfully made", function () {
+        QUnit.asyncTest("Title request is successfully made", function () {
 
             var promise = alchemy.alchemyRequest(config.requestTitleURL, "http://stackoverflow.com");
 
@@ -38,13 +39,15 @@ define(["jquery", "underscore", "sortapi", "alchemy", "storage", "jqueryhelpers"
         });
 
         // Can cache a category value and destroy it
-        test("Store category", function() {
+        QUnit.test("Store category", function() {
             alchemy.cache("http://google.com", config.categoryProperty, "recreation");
 
             var cachedData = alchemy.cache("http://google.com");
 
             ok(cachedData);
         });
+
+        QUnit.module("Categorization & Titles");
 
         // Category template object can be generated (singleton on module)
         test("Category object can be created", function() {
@@ -55,7 +58,7 @@ define(["jquery", "underscore", "sortapi", "alchemy", "storage", "jqueryhelpers"
         });
 
         // Category promise is returned with valid data
-        test("Category promise, new, with valid URL that has a low score", function(assert) {
+        QUnit.test("Category promise, with valid URL that has a low score", function(assert) {
             assert.expect(3);
 
             var done1 = assert.async(),
@@ -85,9 +88,8 @@ define(["jquery", "underscore", "sortapi", "alchemy", "storage", "jqueryhelpers"
         });
         */
 
-
         // Category promise with an invalid URL and no cache causes rejection
-        asyncTest("Category promise, new, with invalid URL", function() {
+        QUnit.asyncTest("Category promise, with invalid URL", function() {
             var templateObject = alchemy.alchemyCategoryObject();
 
             var promise = templateObject.getData("www.thiswebsitedoesnotexist123123123.com");
@@ -107,8 +109,10 @@ define(["jquery", "underscore", "sortapi", "alchemy", "storage", "jqueryhelpers"
             });
         });
 
+        QUnit.module("Chrome API interface");
+
         // Create a bookmark (folder) via a promise
-        asyncTest("Chrome API - create a folder must return a promise", function() {
+        QUnit.asyncTest("Chrome API - create a folder must return a promise", function() {
             var randomString = Math.floor(Math.random() * 100).toString();
 
             var bookmark = {
@@ -132,7 +136,7 @@ define(["jquery", "underscore", "sortapi", "alchemy", "storage", "jqueryhelpers"
         });
 
         // Search bookmarks via a promise
-        asyncTest("Chrome API - search bookmarks and return a promise", function() {
+        QUnit.asyncTest("Chrome API - search bookmarks (including folders) and return a promise", function() {
             var randomString = Math.floor(Math.random() * 100).toString();
 
             var bookmark = {
@@ -155,11 +159,51 @@ define(["jquery", "underscore", "sortapi", "alchemy", "storage", "jqueryhelpers"
             });
         });
 
-        // Search bookmarks includes folders in the results (this is a recent Chrome change)
+        QUnit.module("Cross browser helper functions");
 
+        QUnit.test("Get a bookmarks subtree", function(assert) {
+            var done1 = assert.async();
 
+            var promise = crossbrows.bookmarksSubTree();
 
-        // Destroy a bookmark (folder) via a promise
+            promise.always(function(results) {
+                console.log(results);
+                ok(results);
+                done1();
+            });
+        });
+
+        QUnit.test("Convert a tree to divs", function(assert) {
+            ok(0);
+
+        });
+        // Move a bookmark (folder) via a promise
+        /*
+        QUnit.test("Chrome API - move a folder and return a promise", function(assert){
+            var done = assert.async();
+            var randomStringParent = Math.floor(Math.random() * 100).toString();
+            var randomStringChild = Math.floor(Math.random() * 100).toString();
+
+            var bookmark = {
+                title: randomString
+            };
+
+            chrome.bookmarks.create(bookmark, function(parent) {
+                chrome.bookmarks.create(bookmark, function(child) {
+                    var query = {
+                        title: randomString
+                    };
+
+                    var promise = chromex.searchBookmarks(query)
+
+                    promise.always(function(results) {
+                        equal(results[0].title, randomString, "We found the bookmark that we created via a promise.");
+                        chrome.bookmarks.remove(results[0].id, $.noop());
+                    });
+                });
+            });
+        });
+        */
 
         // Category promise, old, with a valid URL that has a high score
 

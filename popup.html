@@ -3,6 +3,13 @@
 <head>
 	<meta charset="utf-8">
 	<title>Smart Bookmark Sorter</title>
+
+	<div class="spinner">
+		<div class="bounce1"></div>
+		<div class="bounce2"></div>
+		<div class="bounce3"></div>
+	</div>
+
 	<!--********** JQuery ************-->
     <script data-main="js/require_popup.js" src="js/require.js"></script>
 
@@ -10,7 +17,7 @@
 	<link rel="stylesheet" type="text/css" href="css/popup.css" />
 </head>
 <!--********** UI - HTML ************-->
-<div id="tabs" >
+<div id="tabs" style="display: none;">
     <ul>
         <li><a href="#tabs-1">Register</a></li>
         <li><a href="#tabs-2">Backup</a></li>
@@ -50,27 +57,28 @@
 		<button id="button_continue">Continue</button>
 		<img id="img_export" src="images/Chrome_Export_Bookmarks.png" alt="Chrome Export Bookmarks">
     </div>
-    <div id="tabs-3">
+	<div id="tabs-3">
+		<ol class="sortable"></ol>
 		<p>This will sort all of your Other Bookmarks into folders by category and title. Please make sure you have backed up your bookmarks before proceeding!</p>
 		<p>
-		  <label for="spinner_archivedays">Sort bookmarks older than:</label>
-		  <input id="spinner_archivedays" name="value" title="Bookmarks older than this amount will be sorted." /> days
+			<label for="spinner_archivedays">Sort bookmarks older than:</label>
+			<input id="spinner_archivedays" name="value" title="Bookmarks older than this amount will be sorted." /> days
 		</p>
-		<div id="container" style="width:500px">
+		<div id="container1" style="width:500px">
 			<button id="button_sample" title="Sort a sample of bookmarks to see how it works before committing.">Sort Sample</button>
 			<button id="button_sort" title="Sorts all of your bookmarks.">Sort Now</button>
 		</div>
 		<div id="progressbar_sorting"></div>
 		<div id="dialog_confirm_sort" title="Sort all bookmarks?">
-		  <p><span class="ui-icon ui-icon-alert" style="float: left; margin: 0 7px 20px 0;"></span>All of your bookmarks will be sorted. Please make sure you have backed them up. Are you sure?</p>
+			<p><span class="ui-icon ui-icon-alert" style="float: left; margin: 0 7px 20px 0;"></span>All of your bookmarks will be sorted. Please make sure you have backed them up. Are you sure?</p>
 		</div>
 		<div id="dialog_error_sort" title="Error - Daily Transaction Limit Exceeded">
-		  <p>Daily transaction limit for AlchemyAPI has been exceeded. Continue sorting your bookmarks tomorrow!</p>
+			<p>Daily transaction limit for AlchemyAPI has been exceeded. Continue sorting your bookmarks tomorrow!</p>
 		</div>
-    </div>
+	</div>
     <div id="tabs-4">
 		<p>Configure automatic sort, which will maintain order in your bookmarks while active. The three options below allow you to customize automatic sort.</p>
-		<div id="container" style="width:500px">
+		<div id="container2" style="width:500px">
 			<input type="checkbox" id="button_oncreate"/>
 			<label for="button_oncreate" title="Will sort bookmarks as they are created.">Sort on Bookmark Event</label>
 			<input type="checkbox" id="button_interval"/>
@@ -83,7 +91,7 @@
 		<label for="button_autosort" title="Enables or disables automatic sort. You must toggle me to refresh settings changed above.">Automatic Sort</label>
     </div>
 	<div id="tabs-5">
-		<div id="container">
+		<div id="container3">
 			<p>Version 0.0.1.3</p>		
 			<p>Powered by</p>		
 			<a href="http://alchemyapi.com" target="_blank"><img src="images/alchemyAPI.jpg" alt="AlchemyAPI Logo"></a>

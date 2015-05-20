@@ -4,7 +4,7 @@
 
 
 /******* BOOKMARK SORTER *******/
-define(["jquery", "underscore", "jqueryhelpers", "storage", "chromeinterface", "alchemy", "config", "purl", ], function($, _, jhelpers, storage, chromex, alchemy, config) {
+define(["jquery", "underscore", "jqueryhelpers", "storage", "chromeinterface", "alchemy", "config", "lib/purl", ], function($, _, jhelpers, storage, chromex, alchemy, config) {
 	return {
 
 		/**

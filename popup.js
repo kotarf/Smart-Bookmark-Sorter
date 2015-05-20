@@ -1,8 +1,19 @@
-define(["jquery", "sortapi", "storage", "alchemy", "jquery-ui.min", "jquery.total-storage", "domReady"], function($, sortapi, storage, alchemy) {
-		console.log(storage);
+define(["jquery", "sortapi", "storage", "alchemy", "sharedbrowser", "jquery-ui.min", "lib/jquery.mjs.nestedSortable", "lib/jquery.total-storage", "domReady"], function($, sortapi, storage, alchemy, sharedbrws) {
 		$( document ).tooltip();
 
 		$( "#tabs" ).tabs({ heightStyle: "content" });
+
+		// Initialize the bookmarks tree
+		$('.sortable').nestedSortable({
+			handle: 'div',
+			items: 'li',
+			toleranceElement: '> div'
+		});
+
+		$('sortable').sortable('disabled');
+
+		// Fill the bookmarks tree
+		sharedbrws.bookmarksListDivs();
 
 		// Get api key from local storage
 		var key = storage.getApiKey();
@@ -16,6 +27,7 @@ define(["jquery", "sortapi", "storage", "alchemy", "jquery-ui.min", "jquery.tota
 			//$('#tabs').tabs('disable', 0); // disable first tab
 			$( "#tabs" ).tabs({active: 2});
 		}
+
 
 		$( "#dialog_confirm_privacy" ).dialog({
 			resizable: false,

@@ -18,6 +18,7 @@
 	"storage",
 	"alarms",
 	"background",
+    "chrome://favicon/",
 	"http://access.alchemyapi.com/"
   ]
 }

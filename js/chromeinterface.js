@@ -12,7 +12,7 @@ define(["jquery"], function($){
     return {
         searchFolders: function (parentId, name, deferred) {
             var me = this;
-            console.log("MAJOR PROBLEMS", name, parentId, deferred);
+
             chrome.bookmarks.search(name, function (results) {
 
                 if (_.isArray(results)) {
@@ -80,8 +80,8 @@ define(["jquery"], function($){
         /**
          * Search bookmarks with query
          * Does not return folders
-         * @param {string} query The callback to run with the other bookmarks folder
-         * @param {function} callback The callback to run with the results of the search
+         * @param {string} query The search query
+         * @return {promise} dfd A promise to search bookmarks for the given query
          */
         searchBookmarks: function (query) {
             var dfd = $.Deferred();
@@ -137,13 +137,24 @@ define(["jquery"], function($){
         },
 
         /**
-         * Get all children bookmarks at id
-         * @param {string} id The id of parent
-         * @param {object} destination The destination to move to (chrome api specified)
-         * @param {function} callback The callback to run after moving the bookmark
+         * Move a bookmark
+         * @param {object} bookmark The bookmark that was moved.
+         * @return {promise} A promise to move a bookmark.
          */
         moveBookmark: function (id, destination, callback) {
-            chrome.bookmarks.move(id, destination, callback);
+            var dfd = $.Deferred();
+
+            chrome.bookmarks.move(id, destination, function(result) {
+               if(result)
+               {
+                   dfd.resolve(result);
+               }
+                else{
+                   dfd.reject();
+               }
+            });
+
+            return dfd.promise();
         },
 
         /**
@@ -230,11 +241,45 @@ define(["jquery"], function($){
 
         /**
          * Get subtree by id
-         * @param {string} id The id to grab a subtree
-         * @param {function} callback The callback to run with visit results
+         * @param {string} id The id to grab a subtree for
+         * @return {promise} dfd A promise to get a bookmarks subtree
          */
-        chromeGetSubTree: function (id, callback) {
-            chrome.bookmarks.getSubTree(id, callback);
+        chromeGetSubTree: function (id) {
+            var dfd = $.Deferred();
+
+            chrome.bookmarks.getSubTree(id, function(results) {
+                if(results.length)
+                {
+                    dfd.resolve(results);
+                }
+                else
+                {
+                    dfd.reject();
+                }
+            });
+
+            return dfd.promise();
+        },
+
+        /**
+         * Get the bookmarks tree
+         * @return {promise} dfd A promise to get all bookmarks
+         */
+        chromeGetTree: function () {
+            var dfd = $.Deferred();
+
+            chrome.bookmarks.getTree(function(results) {
+                if(results.length)
+                {
+                    dfd.resolve(results);
+                }
+                else
+                {
+                    dfd.reject();
+                }
+            });
+
+            return dfd.promise();
         },
 
         /**

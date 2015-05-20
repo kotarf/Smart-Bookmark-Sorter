@@ -3,7 +3,7 @@
  */
 
 require.config({
-   baseUrl: "/js",
+   baseUrl: "js",
    paths: {
        sortapi: '../bookmarksorter',
        'QUnit': 'qunit-1.18.0'

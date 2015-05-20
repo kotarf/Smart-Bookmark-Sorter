@@ -111,7 +111,7 @@ define(["underscore", "jqueryhelpers", "storage", "config"], function(_, jhelper
 
             var dataType = "json";
 
-            //API request for getting the category of a URL
+            // API request for getting the category of a URL
             return jhelpers.jqueryRESTx(requestUrl, data, dataType);
         },
 
