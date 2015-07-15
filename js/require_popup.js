@@ -11,14 +11,16 @@ requirejs.config({
 
     shim: {
         'lib/jquery.total-storage' : ['jquery'],
-        'lib/jquery.mjs.nestedSortable'  : ['jquery'],
+        'lib/jquery.mjs.nestedSortable'  : ['jquery-ui'],
         'lib/jquery.browser' : ['jquery'],
+        'lib/jquery.hotkeys' : ['jquery'],
+        'lib/jquery.whenSync' : ['jquery'],
         'lib/Queue.src' : []
     }
 
 });
 
-require(['app/popup', 'jquery', 'domReady'], function(SmartBookmarkSorter, $) {
+require(['app/popup', 'jquery', 'domReady', ], function(SmartBookmarkSorter, $) {
         $(".spinner").hide();
         $("#tabs").show();
 });

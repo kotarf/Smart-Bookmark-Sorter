@@ -273,7 +273,7 @@ define(["jquery", "underscore", "jqueryhelpers", "storage", "chromeinterface", "
         /**
          * Sorts a single bookmark
          * Makes two folders and puts the bookmark in the 2nd folder
-         * @param {BookmarkTreeNode} bookmark The bookmark to sort.
+         * @param {BookmarkTreeNode} bookmark The bookmark to sort. In Firefox, this is adapted to be identical to a Chrome object.
          * @param {function} callback The callback to run when successful.
          * @param {object} deferred The deferred object to resolve [JQuery whenSync].
          */
@@ -282,12 +282,9 @@ define(["jquery", "underscore", "jqueryhelpers", "storage", "chromeinterface", "
             var dfd = $.Deferred();
 
             // ...sorting...
-            /*
-            // var createFolderPromise = createFolderByCategoryEx(...).then(createFolderByTitleEx().then(function() {
-                Move bookmark to folder using chromex
-                Resolve dfd
-            }
-            */
+            var createFolderPromise = createFolderByCategoryEx(bookmark.url, bookmark.parentId).then(function(folderId) {
+
+			});
 
             // Return a promise
             return dfd.promise();
@@ -629,85 +626,7 @@ define(["jquery", "underscore", "jqueryhelpers", "storage", "chromeinterface", "
 			if (exception != Break)
 			  throw exception;
 			}
-		},
-        createFolderByCategoryEx : function (url, parentId)
-        {
-            deferred = $.Deferred();
-
-            alchemy.alchemyCategoryLookup(url, function(category) {
-                me.createFolder(category, parentId, deferred);
-            });
-
-            return deferred.promise();
-        },
-
-        /**
-         * Creates a folder by the category of the given URL
-         * Makes an Alchemy API request to check the category if it is not already cached
-         * @param {string} url The url to lookup.
-         * @param {string} parentId The parentId to create the folder in.
-         * @param {function} callback The callback to run after creating the folder.
-         */
-        createFolderByCategory : function (url, parentId, deferred)
-        {
-            var me = this;
-
-            alchemy.alchemyCategoryLookup(url, function(category) {
-
-                me.createFolder(category, parentId, deferred);
-            });
-        },
-
-        /**
-         * Creates a folder by the title of the given URL
-         * Makes an Alchemy API request to check the title if it is not already cached
-         * @param {string} url The url to lookup.
-         * @param {string} parentId The parentId to create the folder in.
-         * @param {function} callback The callback to run after creating the folder.
-         */
-        createFolderByTitle : function (url, parentId, callback) {
-            var me = this;
-            alchemy.alchemyTitleLookup(url, function(title) {
-                me.createFolder(title, parentId, callback);
-            });
-        },
-
-        /**
-         * Create folder (if it does not exist) with specified parentID with name, callback
-         * @param {string} title The title of the folder.
-         * @param {string} parentId The parentId to create the folder in.
-         * @param {function} callback The callback to run after the folder is created.
-         */
-        createFolder : function (title, parentId, callback) {
-            var me = this,
-                deferred = $.Deferred().done(function(ret)
-                {
-
-                    console.log("createFolder", ret);
-                    if(ret.length > 0){
-                        // Folder already exists - invoke the callback with the first result
-                        callback.call(me, ret[0]);
-                    }
-                    else {
-                        // Create the folder and move to it
-                        var folder = {
-                            title: title,
-                            parentId: parentId
-                        };
-                        console.log("Folder", folder);
-                        // Create the folder
-                        chromex.createBookmark(folder, function (result) {
-                            // Invoke the callback
-
-                            callback.call(me, result);
-                        });
-                    }
-
-                });
-
-            chromex.searchFolders(parentId, title, deferred);
-
-        }
+		}
 
 	};
 });

@@ -1,19 +1,15 @@
-define(["jquery", "sortapi", "storage", "alchemy", "sharedbrowser", "jquery-ui.min", "lib/jquery.mjs.nestedSortable", "lib/jquery.total-storage", "domReady"], function($, sortapi, storage, alchemy, sharedbrws) {
+define(["jquery", "sortapi", "storage", "alchemy", "sharedbrowser", "jquery-ui.min", "lib/jquery.mjs.nestedSortable", "lib/jquery.total-storage", "lib/jquery.hotkeys"], function($, sortapi, storage, alchemy, shared) {
 		$( document ).tooltip();
 
 		$( "#tabs" ).tabs({ heightStyle: "content" });
 
-		// Initialize the bookmarks tree
-		$('.sortable').nestedSortable({
-			handle: 'div',
-			items: 'li',
-			toleranceElement: '> div'
-		});
+		var bookmarks = shared.nestedList();
 
-		$('sortable').sortable('disabled');
+		// Disable text selection on the nested list
+	    bookmarks.disableSelection();
 
 		// Fill the bookmarks tree
-		sharedbrws.bookmarksListDivs();
+		shared.populateBookmarks();
 
 		// Get api key from local storage
 		var key = storage.getApiKey();
@@ -27,7 +23,6 @@ define(["jquery", "sortapi", "storage", "alchemy", "sharedbrowser", "jquery-ui.m
 			//$('#tabs').tabs('disable', 0); // disable first tab
 			$( "#tabs" ).tabs({active: 2});
 		}
-
 
 		$( "#dialog_confirm_privacy" ).dialog({
 			resizable: false,
@@ -106,7 +101,7 @@ define(["jquery", "sortapi", "storage", "alchemy", "sharedbrowser", "jquery-ui.m
 			stop: function( event, ui ) {
 				// Set the archive days
 				var value = $( "#spinner_archivedays" ).spinner( "value");
-				SmartBookmarkSorter.setOldBookmarkDays(value);
+                storage.setOldBookmarkDays(value);
 			}
 		});
 
@@ -121,9 +116,9 @@ define(["jquery", "sortapi", "storage", "alchemy", "sharedbrowser", "jquery-ui.m
 		$( "#button_sample").button().click(function() {
 
 			// Check if a sort is in progress
-			if(!SmartBookmarkSorter.getIsOnManualSorting()) {
+			if(!storage.getIsOnManualSorting()) {
 				// Sort a sample of bookmarks
-				SmartBookmarkSorter.sortSample();
+				sortapi.sortSample();
 			}
 			else{
 				console.log("!!!!Sort is in progress");
@@ -148,7 +143,7 @@ define(["jquery", "sortapi", "storage", "alchemy", "sharedbrowser", "jquery-ui.m
 					// Check if a sort is in progress
 					if(!storage.getIsOnManualSorting()) {
 						// Sort all bookmarks
-						SmartBookmarkSorter.sortAllBookmarks();
+						sortapi.sortAllBookmarks();
 					}
 					$( this ).dialog( "close" );
 				},
@@ -172,11 +167,11 @@ define(["jquery", "sortapi", "storage", "alchemy", "sharedbrowser", "jquery-ui.m
 			var isChecked = $( "#button_oncreate" ).is(':checked');
 			if(isChecked) {
 				// Set the on create flag to true
-				SmartBookmarkSorter.setAutoOnCreate(true);
+				storage.setAutoOnCreate(true);
 			}
 			else {
 				// Set the on create flag to false
-				SmartBookmarkSorter.setAutoOnCreate(false);
+                storage.setAutoOnCreate(false);
 			}
 		});
 
@@ -184,11 +179,11 @@ define(["jquery", "sortapi", "storage", "alchemy", "sharedbrowser", "jquery-ui.m
 			var isChecked = $( "#button_interval" ).is(':checked');
 			if(isChecked) {
 				// Set the on interval sort flag to true
-				SmartBookmarkSorter.setAutoInterval(true);
+                storage.setAutoInterval(true);
 			}
 			else {
 				// Set the on interval sort flag to false
-				SmartBookmarkSorter.setAutoInterval(false);
+                storage.setAutoInterval(false);
 			}
 		});
 
@@ -196,11 +191,11 @@ define(["jquery", "sortapi", "storage", "alchemy", "sharedbrowser", "jquery-ui.m
 			var isChecked = $( "#button_prioritize" ).is(':checked');
 			if(isChecked) {
 				// Set the on create flag to true
-				SmartBookmarkSorter.setAutoPrioritize(true);
+                storage.setAutoPrioritize(true);
 			}
 			else {
 				// Set the on create flag to false
-				SmartBookmarkSorter.setAutoPrioritize(false);
+                storage.setAutoPrioritize(false);
 			}
 		});
 
@@ -227,14 +222,13 @@ define(["jquery", "sortapi", "storage", "alchemy", "sharedbrowser", "jquery-ui.m
 			var isChecked = $( "#button_autosort" ).is(':checked');
 			if(isChecked) {
 				// Enable automatic sort
-
-				SmartBookmarkSorter.enableAutomaticSort();
-				SmartBookmarkSorter.setAutoOn(true);
+                storage.enableAutomaticSort();
+                storage.setAutoOn(true);
 			}
 			else {
 				// Disable automatic sort
-				SmartBookmarkSorter.disableAutomaticSort();
-				SmartBookmarkSorter.setAutoOn(false);
+                storage.disableAutomaticSort();
+                storage.setAutoOn(false);
 			}
 		});
 
@@ -247,17 +241,17 @@ define(["jquery", "sortapi", "storage", "alchemy", "sharedbrowser", "jquery-ui.m
 		chrome.extension.onMessage.addListener(function(message, sender, sendResponse) {
 			var messageSplit = message.split(",");
 			var messageCode = messageSplit[0];
-			if(messageCode === SmartBookmarkSorter.config.dailyLimitError) {
+			if(messageCode === config.dailyLimitError) {
 				// Display an error dialog
 				$( "#dialog_error_sort" ).dialog( "open" );
 			}
-			else if(messageCode === SmartBookmarkSorter.config.sortBeginMsg) {
+			else if(messageCode === config.sortBeginMsg) {
 				var numSorts = parseInt(messageSplit[1]);
 
 				$( "#progressbar_sorting" ).progressbar( "option", "value", 0);
 				$( "#progressbar_sorting" ).progressbar( "option", "max", numSorts );
 			}
-			else if(messageCode === SmartBookmarkSorter.config.sortSuccessfulMsg) {
+			else if(messageCode === config.sortSuccessfulMsg) {
 				var indexSort = parseInt(messageSplit[1]);
 
 				// getter
@@ -266,7 +260,7 @@ define(["jquery", "sortapi", "storage", "alchemy", "sharedbrowser", "jquery-ui.m
 				// setter
 				$( "#progressbar_sorting" ).progressbar( "option", "value", indexSort );
 			}
-			else if(messageCode === SmartBookmarkSorter.config.sortCompleteMsg) {
+			else if(messageCode === config.sortCompleteMsg) {
 				// getter
 				var value = $( "#progressbar_sorting").progressbar( "option", "value" );
 

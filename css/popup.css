@@ -48,9 +48,31 @@
 	}
 
 	/* Nested list */
-	div li {
-		text-indent: 5%;
+	li > div {
+		text-indent: 10%;
 		font: 95.5% "Trebuchet MS", sans-serif;
+		display: block;
+		cursor: pointer;
+		text-decoration: none;
+		white-space: nowrap;
+		overflow: hidden;
+		text-overflow: ellipsis;
+	}
+
+	.sortable li.mjs-nestedSortable-collapsed > ol {
+		display: none;
+	}
+
+	.highlight {
+		background-color: AliceBlue;
+		font-weight: bold;
+		opacity: 0.55;               /* Good browsers */
+	}
+
+	.borderhighlight {
+		box-shadow: 0 0 5px rgba(81, 203, 238, 1);
+
+		border: 1px solid rgba(81, 203, 238, 1);
 	}
 
 	/* Spinner */

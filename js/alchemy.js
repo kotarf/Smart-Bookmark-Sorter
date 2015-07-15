@@ -130,6 +130,7 @@ define(["underscore", "jqueryhelpers", "storage", "config"], function(_, jhelper
             resultprop : {}, // result property of the JSON data
             cache: $.noop,
 
+            // Returns cached or fresh AlchemyAPI results for a given URL
             getData: function(url) {
                 var me = this,
                     def = $.Deferred(), //we will resolve this when next is done
@@ -147,16 +148,16 @@ define(["underscore", "jqueryhelpers", "storage", "config"], function(_, jhelper
 
                                 me.cache(newUrl, me.resultprop, result);
 
-                                def.resolve({result: result, data:data});
+                                def.resolve(result, data);
                             }
                             else
                             {
-                                def.reject({data: data});
+                                def.reject(result, data);
                             }
                         }
                         else
                         {
-                            def.reject({data: data});
+                            def.reject(result, data);
                         }
                     });
                 }
@@ -169,18 +170,15 @@ define(["underscore", "jqueryhelpers", "storage", "config"], function(_, jhelper
                 return def.promise();
             },
 
-
-
+            // Returns data for a given url, checking returned statuses
             lookup: function(url)
             {
-                var promise = getData(url),
-                    dfd = $.Deferred(),
+                var dfd = $.Deferred(),
                     me = this;
 
-                promise.done(function(data) {
+                getData(url).done(function(result, data) {
                     // resolve the deferred object
-                    var text = data[me.resultprop];
-                    dfd.resolve(text);
+                    dfd.resolve(result, data);
 
                 }).fail(function(data) {
                     var status = data.status,
@@ -211,12 +209,9 @@ define(["underscore", "jqueryhelpers", "storage", "config"], function(_, jhelper
                         else
                         {
                             // Exhausted all options- store as "unsorted"
-                            var ret = config.unsortedFolderName;
+                            me.cache(url, me.resultprop, config.unsortedFolderName);
 
-                            // Cache the result as unsorted
-                            me.cachefunct(undefined, url, config.unsortedFolderName);
-
-                            df.resolve(config.unsortedFolderName);
+                            dfd.resolve(config.unsortedFolderName);
                         }
 
                     }
@@ -231,25 +226,25 @@ define(["underscore", "jqueryhelpers", "storage", "config"], function(_, jhelper
 
 
         /*
-            var promise = lookup(url);
-            promise.done(...).fail(...)
-            //.fail(if status == ok, if status == dailyLimitError,
+         var promise = lookup(url);
+         promise.done(...).fail(...)
+         //.fail(if status == ok, if status == dailyLimitError,
 
-            alchemyCategoryLookup : function(url, callback)
-            {
-                // If no cached data
-                    // Request
-                        // If status is ok
-                            // If score acceptable
+         alchemyCategoryLookup : function(url, callback)
+         {
+         // If no cached data
+         // Request
+         // If status is ok
+         // If score acceptable
 
-                            // Else
-                                <Template>
+         // Else
+         <Template>
 
-                        // Else
+         // Else
 
-                // Else use cache data
+         // Else use cache data
 
-            }
+         }
 
          */
 

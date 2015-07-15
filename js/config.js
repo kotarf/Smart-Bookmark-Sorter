@@ -5,7 +5,7 @@ define({
     /** SmartBookmarkSorter configuration properties. These are all constants. */
     requestCategoryURL : 		"http://access.alchemyapi.com/calls/url/URLGetCategory",
     requestTitleURL : 			"http://access.alchemyapi.com/calls/url/URLGetTitle",
-    requestTopicURL : 			"http://access.alchemyapi.com/calls/url/URLGetRankedConcepts",
+    requestConceptURL : 		"http://access.alchemyapi.com/calls/url/URLGetRankedConcepts",
     apiStorageKey : 			"bookmarksort_apikey",
     oldBookmarkDaysKey : 		"bookmarksort_oldarchive",
     autoSortActiveKey : 		"bookmarksort_auto_on",

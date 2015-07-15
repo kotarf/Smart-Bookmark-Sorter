@@ -9,7 +9,7 @@ define(["jquery", "underscore", "sortapi", "alchemy", "storage", "jqueryhelpers"
                 $.totalStorage.deleteItem(items[i].key);
             }
 
-            storage.setApiKey("");
+            storage.setApiKey("206d87478099feddd6a0769e727ad0f91b37b739");
         });
 
         test("test", function () {

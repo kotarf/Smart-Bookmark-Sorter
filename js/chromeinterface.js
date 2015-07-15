@@ -10,24 +10,6 @@
  */
 define(["jquery"], function($){
     return {
-        searchFolders: function (parentId, name, deferred) {
-            var me = this;
-
-            chrome.bookmarks.search(name, function (results) {
-
-                if (_.isArray(results)) {
-                    var nodes = _.filter(results, function (node) {
-                        return $.isEmptyObject(node.url);
-                    });
-
-                    deferred.resolve(nodes);
-                }
-                else {
-                    deferred.fail();
-                }
-            });
-        },
-
         /**
          * Recurses through the bookmark tree looking for bookmarks that pass the test
          * Needed because chrome.bookmarks.search() does not include folders in the result.
@@ -78,15 +60,18 @@ define(["jquery"], function($){
         },
 
         /**
-         * Search bookmarks with query
-         * Does not return folders
-         * @param {string} query The search query
+         * Search for folders with the specified title
+         * As of chrome version ___, these API calls include folders
+         * @param {string} title The search title
          * @return {promise} dfd A promise to search bookmarks for the given query
          */
-        searchBookmarks: function (query) {
-            var dfd = $.Deferred();
+        findFolder: function (title) {
+            var dfd = $.Deferred(),
+                queryObj = {
+                    title: title
+                };
 
-            chrome.bookmarks.search(query, function(results) {
+            chrome.bookmarks.search(queryObj, function(results) {
                 if(results === undefined || results.length === 0)
                 {
                     dfd.reject(results);
