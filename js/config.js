@@ -5,7 +5,7 @@ define({
     /** SmartBookmarkSorter configuration properties. These are all constants. */
     requestCategoryURL : 		"http://access.alchemyapi.com/calls/url/URLGetCategory",
     requestTitleURL : 			"http://access.alchemyapi.com/calls/url/URLGetTitle",
-    requestConceptURL : 		"http://access.alchemyapi.com/calls/url/URLGetRankedConcepts",
+    requestTaxonomyURL : 		"http://access.alchemyapi.com/calls/url/URLGetRankedTaxonomy",
     apiStorageKey : 			"bookmarksort_apikey",
     oldBookmarkDaysKey : 		"bookmarksort_oldarchive",
     autoSortActiveKey : 		"bookmarksort_auto_on",
@@ -21,7 +21,8 @@ define({
     rootBookmarksIndex : 		0,
     otherBookmarksIndex : 		1,
     sampleNumber : 				5,
-    categoryErrorScore :		0.5,
+    categoryErrorScore :		0.01,
+    taxonomyErrorScore :		0.55,
     unsortedFolderName :		"unsorted",
     redoCode :					"_REDO",
     okStatus : 					"OK",
@@ -38,5 +39,6 @@ define({
     isOnIntervalSortingKey :	"isSortingInterval",
     isOnManualSortingKey :		"isSortingManual",
     categoryProperty:           "category",
-    titleProperty:              "title"
+    titleProperty:              "title",
+    taxonomyProperty:           "taxonomy"
 });

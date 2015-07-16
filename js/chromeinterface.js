@@ -11,40 +11,6 @@
 define(["jquery"], function($){
     return {
         /**
-         * Recurses through the bookmark tree looking for bookmarks that pass the test
-         * Needed because chrome.bookmarks.search() does not include folders in the result.
-         * This code is very broken!
-         * @param {string} parentId The optional parentId to search for
-         * @param {function} test The function to test on a BookmarkTreeNode element
-         * @param {function} callback The callback to run with the results
-         */
-        searchFoldersEx: function (parentId, test, callback) {
-            var me = this;
-            var ret = [];
-
-            function testBookmarks(bookmarks) {
-                me.forEach(bookmarks, function (bookmark) {
-
-                    if (test.call(me, bookmark)) {
-                        ret.push(bookmark);
-                    }
-
-                });
-
-                return ret;
-            }
-
-            me.getOtherBookmarks(function (result) {
-                var searchParentId = parentId || result.id;
-
-                me.getBookmarkChildren(searchParentId, function (bookmarks) {
-                    var ret = testBookmarks(bookmarks);
-                    callback.call(me, ret);
-                });
-            });
-        },
-
-        /**
          * Get other bookmarks folder
          * @param {function} callback The callback to run with the other bookmarks folder
          * @config {function} [rootBookmarksIndex] key for root bookmarks index in local storage
@@ -126,7 +92,7 @@ define(["jquery"], function($){
          * @param {object} bookmark The bookmark that was moved.
          * @return {promise} A promise to move a bookmark.
          */
-        moveBookmark: function (id, destination, callback) {
+        moveBookmark: function (id, destination) {
             var dfd = $.Deferred();
 
             chrome.bookmarks.move(id, destination, function(result) {

@@ -1,57 +1,95 @@
 /**
  * Created by kotarf on 5/10/2015.
  */
-define(['jquery', 'chromeinterface', 'config' , 'lib/Queue.src', 'lib/jquery.browser'], function($, chromex, cfg, libqueue) {
+define(['jquery', 'chromeinterface', 'config', 'alchemy', 'lib/Queue.src', 'lib/jquery.browser'], function($, chromex, cfg, alchemy, libqueue) {
    return {
 
-       createFolderByCategoryEx : function (url, parentId)
-       {
-           deferred = $.Deferred();
+       createFolderIfNotExists : function(title, parentId) {
+           var dfd = $.Deferred(),
+               me = this,
+               parentId = parentId || 1;
 
-           alchemy.alchemyCategoryLookup(url, function(category) {
-               me.createFolder(category, parentId, deferred);
-           });
+           if($.browser.webkit) {
+               console.log("Finding a folder");
 
-           return deferred.promise();
+               chromex.findFolder(title).done(function(results) {
+                   console.log("Found a folder", results);
+                   var folder =_.filter(results, function(element) {
+                       return element.parentId == parentId;
+                   })[0];
+
+                   dfd.resolve(folder.id, parentId);
+
+               }).fail(function() {
+                   console.log("Creating a folder");
+
+                   me.createFolder(title, parentId).done(function(result) {
+                       console.log("Created a folder");
+
+                       dfd.resolve(result.id, parentId);
+                   });
+               });
+           }
+
+           return dfd.promise();
        },
 
        /**
-        * Creates a folder by the category of the given URL
-        * Makes an Alchemy API request to check the category if it is not already cached
+        * Creates a folder by the category of the given URL, making an API request to get data and browser requests to find or create a folder
+        * Makes an Alchemy API request to check the category
         * @param {string} url The url to lookup.
         * @param {string} parentId The parentId to create the folder in.
         */
        createFolderByCategory : function (url, parentId)
        {
-           deferred = $.Deferred();
+           var dfd = $.Deferred(),
+               me = this;
 
-           var promise = alchemy.alchemyCategoryLookup(url, parentId).then(createFolder)
+           alchemy.alchemyCategoryLookupEx(url).done(function(result, data) {
+               me.createFolderIfNotExists(result, parentId).done(function(id, parentId) {
+                   console.log("Created folder by category", id, parentId);
 
-           return promise;
+                   dfd.resolve(id, parentId);
+               }).fail(function() {
+                   console.log("Failed to create folder by category", id, parentId);
+
+                   dfd.fail(undefined, parentid, data);
+               });
+           }).fail(function(result, data) {
+               dfd.fail(undefined, parentid, data);
+           });
+
+           return dfd.promise();
        },
 
        /**
-        * Creates a folder by the title of the given URL
-        * Makes an Alchemy API request to check the title if it is not already cached
+        * Duplicates the folder structure of AlchemyAPI's returned taxonomy (only creating folders if they exist)
         * @param {string} url The url to lookup.
         * @param {string} parentId The parentId to create the folder in.
-        * @param {function} callback The callback to run after creating the folder.
         */
-       createFolderByTitle : function (url, parentId, callback) {
-           var me = this;
-           alchemy.alchemyTitleLookup(url, function(title) {
-               me.createFolder(title, parentId, callback);
+       createFoldersByTaxonomy : function (url, parentId) {
+           var dfd = $.Deferred(),
+               me = this;
+
+           alchemy.alchemyConceptLookupEx(url).done(function(result, data) {
+
+               console.log("Concept", result, data);
+               me.createFolderIfNotExists(result, parentId).done(function(id, parentId) {
+                   console.log("Concept create folder succeeded", id, parentId);
+
+                   dfd.resolve(id, parentId);
+               }).fail(function() {
+                   console.log("Concept create folder failed");
+
+                   dfd.fail(undefined, parentId, data);
+               });
+           }).fail(function(result, data) {
+               console.log("Concept lookup failed", result, data);
+
+               dfd.fail(undefined, parentId, data);
            });
-       },
 
-       createFolderByConcept : function (url, parentId, callback) {
-           deferred = $.Deferred();
-
-           alchemy.alchemyCategoryLookup(url, function(category) {
-               me.createFolder(category, parentId, deferred);
-           });
-
-           return deferred.promise();
+           return dfd.promise();
        },
 
        searchFolder : function (title) {
@@ -71,21 +109,33 @@ define(['jquery', 'chromeinterface', 'config' , 'lib/Queue.src', 'lib/jquery.bro
 
            if($.browser.webkit)
            {
-               return $.Deferred(function (dfrd) {
-                   // Create the folder and move to it
-                   var folder = {
-                       title: title,
-                       parentId: parentId
-                   };
-                   console.log("Folder", folder);
+               var dfd = $.Deferred();
 
-                   // Create the folder
-                   chromex.createBookmark(folder, function (result) {
-                       dfrd.resolve(result);
-                   });
+               var folder = {
+                   title: title,
+                   parentId: parentId.toString()
+               };
+               console.log("Folder", folder);
+
+               // Create the folder
+               chromex.createBookmark(folder).done(function (result) {
+                   console.log("Folder created (chromex)", result);
+                   dfd.resolve(result);
                });
+
+               return dfd.promise();
            }
        },
+
+        moveBookmark: function(id, destination) {
+            var dfd = $.Deferred();
+
+            if($.browser.webkit ) {
+                chromex.moveBookmark(id, destination).always(function(result) {
+                    dfd.resolve(result);
+                });
+            }
+        },
 
         bookmarksSubTree: function(id) {
             var dfd = $.Deferred();
@@ -199,12 +249,6 @@ define(['jquery', 'chromeinterface', 'config' , 'lib/Queue.src', 'lib/jquery.bro
            });
 
            return promise;
-       },
-
-       toggleFolder: function(root, id) {
-           // Can I run a selector on the provided root?
-           var child = root.find(id);
-           child.toggle();
        },
 
        openTab : function(tab) {

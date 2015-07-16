@@ -5,6 +5,7 @@
 define(["underscore", "jqueryhelpers", "storage", "config"], function(_, jhelpers, storage, config) {
 
     return {
+
         /**
          * Make an Alchemy API key test that runs callbackA if the key is valid, and runs callbackB if the key is not valid. Assumes google.com is operational :)
          * This code is particularly bad and needs to be replaced with using the regular functions below
@@ -45,385 +46,175 @@ define(["underscore", "jqueryhelpers", "storage", "config"], function(_, jhelper
         /**
          * Make an Alchemy API categorization request that runs the callback when complete
          * @param {string} url The url to categorize
-         * @param {function} callback The function to run with the result
-         * @config {string} [outputMode] Output mode for the request (like json)
-         * @config {string} [requestCategoryURL] Endpoint for Alchemy category requests
          */
         alchemyCategory : function (url) {
-            // Get the api key from local storage
-            console.log("Alchemy Category");
-            var me = this,
-                apikey = storage.getApiKey();
-
-            // Create a local data object for the API request
-            var data = {
-                url: url,
-                apikey: apikey,
-                outputMode: config.outputMode
-            };
-
-            var dataType = "json",
-                requestURL = config.requestCategoryURL;
-
-            console.log("category request", requestURL, data, callback)
+            var requestURL = config.requestCategoryURL;
 
             // API request for getting the category of a URL
-            return jhelpers.jqueryRESTx(requestURL, data, $.noop(), dataType);
+            return this.alchemyRequest(requestURL, url);
         },
 
         /**
          * Make an Alchemy API title request that runs the callback when complete
          * @param {string} url The url to extract title
-         * @param {function} callback The function to run with the result
-         * @config {string} [outputMode] Output mode for the request (like json)
-         * @config {string} [requestTitleURL] Endpoint for Alchemy category requests
          */
         alchemyTitle : function (url) {
-            // Get the api key from local storage
-            var me = this,
-                apikey = storage.getApiKey();
+            var requestURL = config.requestTitleURL;
 
-            //Create a local data object for the API request
-            var data = {
-                url: url,
-                apikey: apikey,
-                outputMode: config.outputMode
-            };
-
-            var dataType = "json",
-                requestURL = config.requestTitleURL;
-
-            //API request for getting the category of a URL
-            return jhelpers.jqueryRESTx(requestURL, data, callback, dataType);
+            // API request for getting the title of a URL
+            return this.alchemyRequest(requestURL, url);
         },
 
-        alchemyRequest: function(requestUrl, url) {
-            // Get the api key from local storage
-            var me = this,
-                apikey = storage.getApiKey();
+        /**
+         * Make an Alchemy API concept request that runs the callback when complete
+         * @param {string} url The url to extract title
+         */
+        alchemyConcept : function (url) {
+            var requestURL = config.requestConceptURL;
 
-            //Create a local data object for the API request
-            var data = {
-                url: url,
-                apikey: apikey,
-                outputMode: config.outputMode
-            };
-
-            var dataType = "json";
-
-            // API request for getting the category of a URL
-            return jhelpers.jqueryRESTx(requestUrl, data, dataType);
+            // API request for getting the concepts of a URL
+            return this.alchemyRequest(requestURL, url);
         },
 
         AlchemyObject : {
-            AlchemyObject: function(request, preprocess, accept, resultprop, cache) {
+            AlchemyObject: function(request, accept, resultprop, preprocess) {
                 this.request = request;
-                this.preproc = preprocess;
                 this.accept = accept;
                 this.resultprop = resultprop;
-                this.cache = cache;
+                this.preproc = preprocess;
             },
 
             request : $.noop, // request function to use
             preproc : function(url) { return url; }, // pre processing on input url
-            accept : $.noop, // given the result data, do you accept it?
+            accept : function(url) { return true; }, // given the result data, do you accept it?
             resultprop : {}, // result property of the JSON data
-            cache: $.noop,
 
-            // Returns cached or fresh AlchemyAPI results for a given URL
+            alchemyRequest: function(requestUrl, url) {
+                // Get the api key from local storage
+                var me = this,
+                    apikey = storage.getApiKey();
+
+                //Create a local data object for the API request
+                var data = {
+                    url: url,
+                    apikey: apikey,
+                    outputMode: config.outputMode
+                };
+
+                var dataType = "json";
+
+                // API request for getting the category of a URL
+                return jhelpers.jqueryRESTx(requestUrl, data, dataType);
+            },
+
+            /**
+             * Returns AlchemyAPI results for the given url, using the object's request function
+             * @param {string} url The url to extract data for
+             */
             getData: function(url) {
                 var me = this,
                     def = $.Deferred(), //we will resolve this when next is done
                     newUrl = me.preproc(url);
 
-                var cacheData = me.cache(newUrl, me.resultprop);
+                me.request(newUrl).done(function (data) {
+                    var status = data.status,
+                        statusInfo = data.statusInfo,
+                        result = data[me.resultprop];
 
-                if(_.isEmpty(cacheData)) {
-                    me.request(newUrl).done(function (data) {
-                        var status = data.status;
-                        if(status === config.okStatus)
-                        {
-                            if (me.accept(data)) {
-                                var result = data[me.resultprop];
+                    if(status === config.okStatus)
+                    {
+                        if (me.accept(data)) {
 
-                                me.cache(newUrl, me.resultprop, result);
-
-                                def.resolve(result, data);
-                            }
-                            else
-                            {
-                                def.reject(result, data);
-                            }
+                            def.resolve(result, data);
                         }
                         else
                         {
                             def.reject(result, data);
                         }
-                    });
-                }
-                else
-                {
-                    console.log("Cached data is", cacheData);
-                    def.resolve({result: cacheData[me.resultprop]});
-                }
-
-                return def.promise();
-            },
-
-            // Returns data for a given url, checking returned statuses
-            lookup: function(url)
-            {
-                var dfd = $.Deferred(),
-                    me = this;
-
-                getData(url).done(function(result, data) {
-                    // resolve the deferred object
-                    dfd.resolve(result, data);
-
-                }).fail(function(data) {
-                    var status = data.status,
-                        statusInfo = data.statusInfo;
-
-                    // if status is ok, redo on baseUrl for better score
-                    if(status === config.okStatus)
-                    {
-
                     }
+
                     // status is not ok
-                    if(status === config.errorStatus)
+                    else if(status === config.errorStatus)
                     {
                         // we have reached our daily limit
-                        if(statusInfo === config.dailyLimitError)
+                        if(statusInfo === config.dailyLimitError || statusInfo.includes(config.cannotRetrieveError))
                         {
-                            dfd.fail(statusInfo);
-                        }
-                        // the page is not html (is an image)
-                        else if(statusInfo === config.pageNotHtmlError)
-                        {
-                            // Template override
-                            // Cache as a redo
-
-
-                            // Redo with baseUrl
+                            def.reject(result, data);
                         }
                         else
                         {
-                            // Exhausted all options- store as "unsorted"
-                            me.cache(url, me.resultprop, config.unsortedFolderName);
-
-                            dfd.resolve(config.unsortedFolderName);
+                            // Exhausted all options- resolve as "unsorted"
+                            def.resolve(config.unsortedFolderName, data);
                         }
-
                     }
-
+                    else
+                    {
+                        // Exhausted all options- resolve as "unsorted"
+                        def.resolve(config.unsortedFolderName, data);
+                    }
                 });
 
-                // Return a promise to get the category or title of a URL from either the cache or the alchemy service
-                return dfd.promise();
-
-            }
+                return def.promise();
+            },
         },
-
-
-        /*
-         var promise = lookup(url);
-         promise.done(...).fail(...)
-         //.fail(if status == ok, if status == dailyLimitError,
-
-         alchemyCategoryLookup : function(url, callback)
-         {
-         // If no cached data
-         // Request
-         // If status is ok
-         // If score acceptable
-
-         // Else
-         <Template>
-
-         // Else
-
-         // Else use cache data
-
-         }
-
-         */
-
 
         alchemyCategoryObject : function()
         {
-            var request = _.partial(this.alchemyRequest, config.requestCategoryURL);
             var accept = function(data) {
-                return data.score > config.categoryErrorScore;
+                return true;
             };
             var me = this;
 
             var categoryObject = Object.create(this.AlchemyObject, {
                 request: {
-                    value: request
+                    value: me.alchemyCategory
                 },
                 accept: {
                     value:accept
                 },
                 resultprop: {
                     value:config.categoryProperty
-                },
-                cache: {
-                    value:me.cache
                 }
             });
 
             return categoryObject;
         },
 
-        //TODO figure out how to use template method to have category, title, and concept lookups share code
-        alchemyCategoryLookupEx : function(url, type)
+        alchemyTaxonomomyObject : function()
         {
-            var categorylookup = new AlchemyLookupObject();
-        },
+            var accept = function(data) {
+                return data.score > config.taxonomyErrorScore;
+            };
+            var me = this;
 
-
-        /**
-         * Makes an Alchemy API request to check the category if it is not already cached
-         * TODO merge category and title functions together
-         * @param {string} url The url to lookup.
-         * @param {function} callback The callback to run after the REST request completes.
-         */
-        alchemyCategoryLookup : function (url, callback)
-        {
-            var me = this,
-                cachedData = jhelpers.jQueryStorageGetValue(url),
-                baseUrl = jhelpers.getBaseUrl(url);
-
-            // Check if there is cached data
-            if(cachedData === null || cachedData.category === undefined) {
-                console.log("Making a CATEGORY request for - ", url);
-
-                // If not, make an API request.
-                me.alchemyCategory(url, function(data, textStatus, jqXHR) {
-
-                    var category = data.category,
-                        status = data.status,
-                        statusInfo = data.statusInfo,
-                        score = data.score;
-
-                    // Check the status first
-                    if (status === config.okStatus && score && category) {
-                        // If the score of the result is horrible, redo the whole thing using the baseUrl (if not already using it)
-                        score = data.score;
-
-                        if (score < config.categoryErrorScore && baseUrl !== url ) {
-                            // Redo the categorization with the base URL because the result was not good enough
-                            console.log("*** REDOING CAT ON SCORE *** with baseUrl = ", baseUrl, " and category ", category);
-
-                            // Cache it as a redo
-                            me.cacheCategory(cachedData, url, config.redoCode);
-
-                            me.alchemyCategoryLookup(baseUrl, callback);
-
-                        } else {
-                            // Cache the category
-                            me.cacheCategory(cachedData, url, category);
-
-                            // Invoke the callback
-                            callback.call(me, category);
-                        }
-                    } else {
-                        // Error handling
-                        console.log("*****ERROR CAT********= ", data, " for url = " , url);
-                        if(statusInfo === config.dailyLimitError) {
-                            // Daily limit reached must stop the chain
-                            chromex.chromeSendMessage(config.dailyLimitError);
-                        } else if (baseUrl !== url) {
-                            // Otherwise the page isn't HTML- fall back on the base URL.
-                            console.log("*** REDOING CAT ON ERROR *** with baseUrl = ", baseUrl);
-                            // Cache the redo
-                            me.cacheCategory(cachedData, url, config.redoCode);
-                            // Redo
-                            me.alchemyCategoryLookup(baseUrl, callback);
-                        } else {
-                            // Cannot read this page- resolve with Unsorted after caching as unsorted
-                            category = config.unsortedFolderName;
-
-                            // Cache the category
-                            me.cacheCategory(cachedData, url, category);
-
-                            // Invoke the callback
-                            callback.call(me, category);
-                        }
-                    }
-                });
-            } else {
-                // Cached category
-                var category = cachedData.category;
-
-                // If a Redo is cached, call it with the baseUrl
-                if (category === config.redoCode) {
-                    me.alchemyCategoryLookup(baseUrl, callback);
-                } else {
-                    // Invoke the callback
-                    callback.call(me, category);
+            var conceptObject = Object.create(this.AlchemyObject, {
+                request: {
+                    value: me.alchemyTaxonomy
+                },
+                accept: {
+                    value:accept
+                },
+                resultprop: {
+                    value:config.taxonomyProperty
                 }
-            }
+            });
+
+            return conceptObject;
         },
 
-        /**
-         * Makes an Alchemy API request to check the title if it is not already cached
-         * @param {string} url The url to lookup.
-         * @param {function} callback The callback to run after the REST request completes.
-         */
-        alchemyTitleLookup : function (url, callback) {
-            // Check local cache to see if the base URL has associated data.
-            console.log("title lookup", jhelpers, url, callback);
-            var me = this,
-                baseUrl = jhelpers.getBaseUrl(url),
-                cachedData = jhelpers.jQueryStorageGetValue(baseUrl);
+        //TODO figure out how to use template method to have category, title, and concept lookups share code. This is just about figured out!
+        alchemyCategoryLookupEx : function(url)
+        {
+            this.alchemyCategoryInstance = this.alchemyCategoryInstance || this.alchemyCategoryObject();
 
-            // If not, make an API request.
-            if(cachedData === null || cachedData.title === undefined)
-            {
-                console.log("Making a TITLE request for - ", url);
-                me.alchemyTitle(baseUrl, function(data, textStatus, jqXHR) {
+            return this.alchemyCategoryInstance.getData(url).promise();
+        },
 
-                    var title = data.title,
-                        category = undefined,
-                        status = data.status,
-                        statusInfo = data.statusInfo;
+        alchemyConceptLookupEx : function(url)
+        {
+            this.alchemyConceptInstance = this.alchemyConceptInstance || this.alchemyConceptObject();
 
-                    // Check the status first
-                    if (status === config.okStatus && title) {
-
-                        // Cache the title
-                        me.cacheTitle(cachedData, baseUrl, title);
-
-                        // Invoke the callback
-                        callback.call(me, title);
-                    } else {
-                        // Error handling
-                        console.log("*****ERROR TITLE********= ", data, " for url = " , url);
-                        if(statusInfo === config.dailyLimitError) {
-                            // Daily limit reached must stop the chain
-                            chromex.chromeSendMessage(config.dailyLimitError);
-                        } else {
-                            // Cannot read this page- resolve with Unsorted after caching as unsorted
-                            title = config.unsortedFolderName;
-
-                            // Cache the title
-                            me.cacheTitle(cachedData, baseUrl, title);
-
-                            // Invoke the callback
-                            callback.call(me, title);
-                        }
-                    }
-                });
-            }
-            else
-            {
-                // Cached title
-                var title = cachedData.title;
-
-                // Invoke the callback
-                callback.call(me, title);
-            }
+            return this.alchemyConceptInstance.getData(url).promise();
         },
 
         cache: function(url, property, data)

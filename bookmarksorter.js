@@ -4,7 +4,7 @@
 
 
 /******* BOOKMARK SORTER *******/
-define(["jquery", "underscore", "jqueryhelpers", "storage", "chromeinterface", "alchemy", "config", "lib/purl", ], function($, _, jhelpers, storage, chromex, alchemy, config) {
+define(["jquery", "underscore", "jqueryhelpers", "storage", "chromeinterface", "alchemy", "config", "sharedbrowser", "lib/purl", ], function($, _, jhelpers, storage, chromex, alchemy, config, shared) {
 	return {
 
 		/**
@@ -272,18 +272,24 @@ define(["jquery", "underscore", "jqueryhelpers", "storage", "chromeinterface", "
 
         /**
          * Sorts a single bookmark
-         * Makes two folders and puts the bookmark in the 2nd folder
-         * @param {BookmarkTreeNode} bookmark The bookmark to sort. In Firefox, this is adapted to be identical to a Chrome object.
-         * @param {function} callback The callback to run when successful.
-         * @param {object} deferred The deferred object to resolve [JQuery whenSync].
+         * Makes two folders - one for category, and one for concept - and moves the bookmark in the concept folder.
+         * @param {BookmarkTreeNode} bookmark The bookmark to sort. In Firefox, this will be adapted to be identical to a Chrome object.
+         * @return {object} deferred The deferred object to resolve [JQuery whenSync].
          */
         sortBookmarkEx : function (bookmark) {
             // Make a deferred
-            var dfd = $.Deferred();
+            var dfd = $.Deferred(),
+                me = this;
 
             // ...sorting...
-            var createFolderPromise = createFolderByCategoryEx(bookmark.url, bookmark.parentId).then(function(folderId) {
+            shared.createFolderByCategory(bookmark.url, config.rootBookmarksId).done(function(id, parentId) {
+                console.log("Creating folder by concept now");
 
+                shared.createFolderByConcept(bookmark.url, parentId).done(function(id, parentId) {
+                    shared.moveBookmark(bookmark.id, id).done(function(result) {
+                        dfd.resolve(result);
+                    });
+                });
 			});
 
             // Return a promise
