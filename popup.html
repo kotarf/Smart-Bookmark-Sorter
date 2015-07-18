@@ -14,9 +14,8 @@
     <script data-main="js/require_popup.js" src="js/require.js"></script>
 
 	<link href="css/jquery-ui.css" rel="stylesheet">
-	<link rel="stylesheet" type="text/css" href="css/popup.css" />
-	<link rel="stylesheet" href="http:/maxcdn.bootstrapcdn.com/font-awesome/4.3.0/css/font-awesome.min.css">
-
+    <link rel="stylesheet" href="http:/maxcdn.bootstrapcdn.com/font-awesome/4.3.0/css/font-awesome.min.css">
+    <link rel="stylesheet" type="text/css" href="css/popup.css" />
 </head>
 <!--********** UI - HTML ************-->
 <div id="tabs" style="display: none;">
@@ -66,6 +65,11 @@
 			<input id="spinner_archivedays" name="value" title="Bookmarks older than this amount will be sorted." /> days
 		</p>
 		<div id="container1" style="width:500px">
+            <select name="folders" id="id_folders">
+                <option>Bookmarks bar</option>
+                <option>Other Bookmarks</option>
+                <option>Mobile bookmarks</option>
+            </select>
 			<button id="button_sample" title="Sort a sample of bookmarks to see how it works before committing.">Sort Sample</button>
 			<button id="button_sort" title="Sort the selected bookmarks.">Sort Now</button>
 			<i class="fa fa-unlock" title="No sorting operations are in progress; actions may be taken."></i>
@@ -93,7 +97,7 @@
 		</div>
 		<p>Enable and disable automatic sorting below.</p>
 		<input type="checkbox" id="button_autosort"/>
-		<label for="button_autosort" title="Enables or disables automatic sort. You must toggle me to refresh settings changed above.">Automatic Sort</label>
+		<label for="button_autosort" title="Enables or disables automatic sort. You must toggle me to refresh settings changed above.">Apply Changes</label>
     </div>
 	<div id="tabs-5">
 		<div id="container3">

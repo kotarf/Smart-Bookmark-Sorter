@@ -282,14 +282,16 @@ define(["jquery", "underscore", "jqueryhelpers", "storage", "chromeinterface", "
                 me = this;
 
             // ...sorting...
-            shared.createFolderByCategory(bookmark.url, config.rootBookmarksId).done(function(id, parentId) {
-                console.log("Creating folder by concept now");
+            shared.createFoldersByTaxonomy(bookmark.url, config.rootBookmarksId).done(function() {
+                console.log("WTF did this get resolved with", arguments);
+				var folderIds = arguments[0],
+                    lastFolderId = folderIds[arguments.length - 1];
 
-                shared.createFolderByConcept(bookmark.url, parentId).done(function(id, parentId) {
-                    shared.moveBookmark(bookmark.id, id).done(function(result) {
-                        dfd.resolve(result);
+                console.log("The last folder that was created has a id of ", lastFolderId, " and the bookmark has id ", bookmark.id);
+
+                    shared.moveBookmark(bookmark.id, lastFolderId).done(function(id, parentId) {
+                        dfd.resolve(id, parentId);
                     });
-                });
 			});
 
             // Return a promise

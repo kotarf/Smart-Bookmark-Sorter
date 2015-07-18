@@ -69,8 +69,8 @@ define(["underscore", "jqueryhelpers", "storage", "config"], function(_, jhelper
          * Make an Alchemy API concept request that runs the callback when complete
          * @param {string} url The url to extract title
          */
-        alchemyConcept : function (url) {
-            var requestURL = config.requestConceptURL;
+        alchemyTaxonomy : function (url) {
+            var requestURL = config.requestTaxonomyURL;
 
             // API request for getting the concepts of a URL
             return this.alchemyRequest(requestURL, url);
@@ -180,14 +180,14 @@ define(["underscore", "jqueryhelpers", "storage", "config"], function(_, jhelper
             return categoryObject;
         },
 
-        alchemyTaxonomomyObject : function()
+        alchemyTaxonomyObject : function()
         {
             var accept = function(data) {
-                return data.score > config.taxonomyErrorScore;
+                return data.taxonomy[0].score > config.taxonomyErrorScore;
             };
             var me = this;
 
-            var conceptObject = Object.create(this.AlchemyObject, {
+            var taxonomyObject = Object.create(this.AlchemyObject, {
                 request: {
                     value: me.alchemyTaxonomy
                 },
@@ -199,7 +199,7 @@ define(["underscore", "jqueryhelpers", "storage", "config"], function(_, jhelper
                 }
             });
 
-            return conceptObject;
+            return taxonomyObject;
         },
 
         //TODO figure out how to use template method to have category, title, and concept lookups share code. This is just about figured out!
@@ -210,11 +210,11 @@ define(["underscore", "jqueryhelpers", "storage", "config"], function(_, jhelper
             return this.alchemyCategoryInstance.getData(url).promise();
         },
 
-        alchemyConceptLookupEx : function(url)
+        alchemyTaxonomyLookupEx : function(url)
         {
-            this.alchemyConceptInstance = this.alchemyConceptInstance || this.alchemyConceptObject();
+            this.alchemyTaxonomyInstance = this.alchemyTaxonomyInstance || this.alchemyTaxonomyObject();
 
-            return this.alchemyConceptInstance.getData(url).promise();
+            return this.alchemyTaxonomyInstance.getData(url).promise();
         },
 
         cache: function(url, property, data)

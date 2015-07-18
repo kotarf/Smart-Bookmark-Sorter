@@ -40,5 +40,7 @@ define({
     isOnManualSortingKey :		"isSortingManual",
     categoryProperty:           "category",
     titleProperty:              "title",
-    taxonomyProperty:           "taxonomy"
+    taxonomyProperty:           "taxonomy",
+    taxonomyNestedProperty:     "label",
+    taxonomyDelimiter:          "/"
 });

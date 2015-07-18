@@ -229,6 +229,71 @@ define(["jquery", "underscore", "sortapi", "alchemy", "storage", "jqueryhelpers"
 
         });
 
+        QUnit.test("whenSync plugin test", function(assert) {
+            var done1 = assert.async();
+
+            var resolver = function( deferred, result, timeout ){
+                setTimeout(
+                    function(){
+                        // Resolve the given deferred.
+                        deferred.resolve( result );
+                    },
+                    timeout
+                );
+            };
+            // Serialize a chain of asynchronous callsbacks. Each one of
+            // these callbacks will receive a Deferred object so that it
+            // can tell the whenSync() method when to move onto the next
+            // asynchronous method in the chain.
+            var asyncChain = $.whenSync(
+                function( deferred ){
+                    resolver( deferred, "result1", 250 );
+                },
+
+                function( deferred, result1 ){
+                    resolver( deferred, "result2", 500 );
+                },
+
+                function( deferred, result1, result2 ){
+                    resolver( deferred, "result3", 250 );
+                }
+            );
+
+            asyncChain.done(
+                function( result1, result2, result3 ){
+                    ok(result1);
+                    ok(result2);
+                    ok(result3);
+                    done1();
+                }
+            );
+
+            asyncChain.fail(function() {
+                ok(false);
+                done1();
+            });
+        });
+
+
+        QUnit.test("Create a taxonomy folder structure based on a taxonomy request", function(assert) {
+           var done1 = assert.async();
+
+            var promise = crossbrows.createFoldersByTaxonomy("http://www.bennadel.com/blog/2326-jquery-whensync-plugin-for-chaining-asynchronous-callbacks-using-deferred-objects.htm", 1),
+                expectedResult = ["technology and computing","programming languages","javascript"];
+            promise.done(function(results) {
+                equal(results.length, 3, "Three elements are included in the returned result.");
+                chrome.bookmarks.removeTree(results[0], $.noop);
+                done1();
+            });
+            promise.fail(function(results) {
+                ok(false);
+                done2();
+            });
+        });
+
+        QUnit.module("Sorting");
+
+
         QUnit.test("Sort a bookmark", function(assert) {
             var done1 = assert.async(),
                 bookmark = {
@@ -240,13 +305,16 @@ define(["jquery", "underscore", "sortapi", "alchemy", "storage", "jqueryhelpers"
             chrome.bookmarks.create(bookmark, function(result) {
                 var promise = SmartBookmarkSorter.sortBookmarkEx(result);
 
-                promise.always(function(results) {
-                    ok(results);
+                promise.always(function(id, parentId) {
+                    ok(id);
+                    ok(parentId);
+                    chrome.bookmarks.removeTree(parentId, $.noop);
                     done1();
                 });
             });
 
         });
+
         // Move a bookmark (folder) via a promise
         /*
         QUnit.test("Chrome API - move a folder and return a promise", function(assert){

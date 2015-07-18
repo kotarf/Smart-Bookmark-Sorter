@@ -120,3 +120,12 @@
 			  -webkit-transform: scale(1.0);
 		  }
 	}
+
+	/* select menu, sort buttons TODO is there a way to just add this to certain buttons*/
+	.ui-selectmenu-button {
+		vertical-align : middle !important;
+	}
+
+	select {
+		width: 125%;
+	}

@@ -93,16 +93,13 @@ define(["jquery"], function($){
          * @return {promise} A promise to move a bookmark.
          */
         moveBookmark: function (id, destination) {
-            var dfd = $.Deferred();
+            var dfd = $.Deferred(),
+                move = {
+                    parentId: destination
+                };
 
-            chrome.bookmarks.move(id, destination, function(result) {
-               if(result)
-               {
-                   dfd.resolve(result);
-               }
-                else{
-                   dfd.reject();
-               }
+            chrome.bookmarks.move(id, move, function(result) {
+                dfd.resolve(result);
             });
 
             return dfd.promise();

@@ -1,7 +1,7 @@
 /**
  * Created by kotarf on 5/10/2015.
  */
-define(['jquery', 'chromeinterface', 'config', 'alchemy', 'lib/Queue.src', 'lib/jquery.browser'], function($, chromex, cfg, alchemy, libqueue) {
+define(['jquery', 'chromeinterface', 'config', 'alchemy', 'config', 'jqueryhelpers', 'lib/Queue.src', 'lib/jquery.browser'], function($, chromex, cfg, alchemy, config, jhelpers, libqueue) {
    return {
 
        createFolderIfNotExists : function(title, parentId) {
@@ -10,22 +10,13 @@ define(['jquery', 'chromeinterface', 'config', 'alchemy', 'lib/Queue.src', 'lib/
                parentId = parentId || 1;
 
            if($.browser.webkit) {
-               console.log("Finding a folder");
-
                chromex.findFolder(title).done(function(results) {
-                   console.log("Found a folder", results);
                    var folder =_.filter(results, function(element) {
                        return element.parentId == parentId;
                    })[0];
-
                    dfd.resolve(folder.id, parentId);
-
                }).fail(function() {
-                   console.log("Creating a folder");
-
                    me.createFolder(title, parentId).done(function(result) {
-                       console.log("Created a folder");
-
                        dfd.resolve(result.id, parentId);
                    });
                });
@@ -47,12 +38,8 @@ define(['jquery', 'chromeinterface', 'config', 'alchemy', 'lib/Queue.src', 'lib/
 
            alchemy.alchemyCategoryLookupEx(url).done(function(result, data) {
                me.createFolderIfNotExists(result, parentId).done(function(id, parentId) {
-                   console.log("Created folder by category", id, parentId);
-
                    dfd.resolve(id, parentId);
                }).fail(function() {
-                   console.log("Failed to create folder by category", id, parentId);
-
                    dfd.fail(undefined, parentid, data);
                });
            }).fail(function(result, data) {
@@ -65,28 +52,55 @@ define(['jquery', 'chromeinterface', 'config', 'alchemy', 'lib/Queue.src', 'lib/
        /**
         * Duplicates the folder structure of AlchemyAPI's returned taxonomy (only creating folders if they exist)
         * @param {string} url The url to lookup.
-        * @param {string} parentId The parentId to create the folder in.
+        * @param {string} parentId The parentId to create the first folder in
         */
-       createFoldersByTaxonomy : function (url, parentId) {
-           var dfd = $.Deferred(),
-               me = this;
+       createFoldersByTaxonomy: function (url, parentId) {
+           var me = this,
+               dfd = $.Deferred();
 
-           alchemy.alchemyConceptLookupEx(url).done(function(result, data) {
+           alchemy.alchemyTaxonomyLookupEx(url).done(function () {
 
-               console.log("Concept", result, data);
-               me.createFolderIfNotExists(result, parentId).done(function(id, parentId) {
-                   console.log("Concept create folder succeeded", id, parentId);
+               console.log("Alchemy taxonomy:", arguments);
+               var results = arguments[0];
+               console.log(results);
+                   var bestResult = results[0][config.taxonomyNestedProperty] || results[0];
+               console.log(bestResult);
 
-                   dfd.resolve(id, parentId);
-               }).fail(function() {
-                   console.log("Concept create folder failed");
+               var splitResults = bestResult.split(config.taxonomyDelimiter);
+               console.log(splitResults);
 
-                   dfd.fail(undefined, parentId, data);
+               var taxonomy = _.isEmpty(splitResults[0]) ? splitResults.splice(1) : splitResults.splice(0)
+               console.log(taxonomy);
+
+               var defFunctors = _.map(taxonomy, function (element) {
+                   return function () {
+                       var deferred = arguments[0],
+                           title = element,
+                           parentId = arguments.length > 1 ? arguments[arguments.length - 1] : parentId;
+
+                       // Resolve the deferred in the future.
+                        me.createFolderIfNotExists(title, parentId).done(function(newId) {
+                            deferred.resolve(newId);
+                        });
+
+                   };
                });
-           }).fail(function(result, data) {
-               console.log("Concept lookup failed", result, data);
 
-               dfd.fail(undefined, parentId, data);
+               var asyncChain = jhelpers.jQueryWhenSync(me, defFunctors);
+
+               asyncChain.done(function(results) {
+                   console.log("Resolving ", arguments);
+                   dfd.resolve(arguments);
+               });
+
+               asyncChain.fail(function(results) {
+                   dfd.fail(results);
+               });
+
+               return asyncChain.promise();
+
+           }).fail(function (result, data) {
+               dfd.fail(result, data);
            });
 
            return dfd.promise();
@@ -130,11 +144,18 @@ define(['jquery', 'chromeinterface', 'config', 'alchemy', 'lib/Queue.src', 'lib/
         moveBookmark: function(id, destination) {
             var dfd = $.Deferred();
 
+
             if($.browser.webkit ) {
+                console.log("Attempting to move ", id, " to ", destination);
+
                 chromex.moveBookmark(id, destination).always(function(result) {
-                    dfd.resolve(result);
+                    console.log("move result for chrome ", result);
+
+                    dfd.resolve(result.id, result.parentId);
                 });
             }
+
+            return dfd.promise();
         },
 
         bookmarksSubTree: function(id) {
