@@ -14,7 +14,14 @@ define(['jquery', 'chromeinterface', 'config', 'alchemy', 'config', 'jqueryhelpe
                    var folder =_.filter(results, function(element) {
                        return element.parentId == parentId;
                    })[0];
-                   dfd.resolve(folder.id, parentId);
+                   if(folder) {
+                       dfd.resolve(folder.id, parentId);
+                   }
+                   else {
+                       me.createFolder(title, parentId).done(function(result) {
+                           dfd.resolve(result.id, parentId);
+                       });
+                   }
                }).fail(function() {
                    me.createFolder(title, parentId).done(function(result) {
                        dfd.resolve(result.id, parentId);
@@ -54,51 +61,44 @@ define(['jquery', 'chromeinterface', 'config', 'alchemy', 'config', 'jqueryhelpe
         * @param {string} url The url to lookup.
         * @param {string} parentId The parentId to create the first folder in
         */
-       createFoldersByTaxonomy: function (url, parentId) {
+       createFoldersByTaxonomy: function (url, startingParentId) {
            var me = this,
                dfd = $.Deferred();
 
            alchemy.alchemyTaxonomyLookupEx(url).done(function () {
+               var results = arguments[0],
+                   bestResult = Array.isArray(results) ? results[0][config.taxonomyNestedProperty] : results;
 
-               console.log("Alchemy taxonomy:", arguments);
-               var results = arguments[0];
-               console.log(results);
-                   var bestResult = results[0][config.taxonomyNestedProperty] || results[0];
-               console.log(bestResult);
+               bestResult = bestResult || results;
 
-               var splitResults = bestResult.split(config.taxonomyDelimiter);
-               console.log(splitResults);
-
-               var taxonomy = _.isEmpty(splitResults[0]) ? splitResults.splice(1) : splitResults.splice(0)
-               console.log(taxonomy);
+               var splitResults = bestResult.split(config.taxonomyDelimiter),
+                   taxonomy = _.isEmpty(splitResults[0]) ? splitResults.splice(1) : splitResults.splice(0)
+               console.log("Taxonomy", taxonomy);
 
                var defFunctors = _.map(taxonomy, function (element) {
                    return function () {
                        var deferred = arguments[0],
                            title = element,
-                           parentId = arguments.length > 1 ? arguments[arguments.length - 1] : parentId;
+                           parentId = arguments.length > 1 ? arguments[arguments.length - 1] : startingParentId;
 
                        // Resolve the deferred in the future.
                         me.createFolderIfNotExists(title, parentId).done(function(newId) {
                             deferred.resolve(newId);
+                        }).fail(function() {
+                            deferred.reject(title);
                         });
-
                    };
                });
 
                var asyncChain = jhelpers.jQueryWhenSync(me, defFunctors);
 
                asyncChain.done(function(results) {
-                   console.log("Resolving ", arguments);
                    dfd.resolve(arguments);
                });
 
                asyncChain.fail(function(results) {
                    dfd.fail(results);
                });
-
-               return asyncChain.promise();
-
            }).fail(function (result, data) {
                dfd.fail(result, data);
            });
@@ -129,11 +129,9 @@ define(['jquery', 'chromeinterface', 'config', 'alchemy', 'config', 'jqueryhelpe
                    title: title,
                    parentId: parentId.toString()
                };
-               console.log("Folder", folder);
 
                // Create the folder
                chromex.createBookmark(folder).done(function (result) {
-                   console.log("Folder created (chromex)", result);
                    dfd.resolve(result);
                });
 
@@ -144,13 +142,8 @@ define(['jquery', 'chromeinterface', 'config', 'alchemy', 'config', 'jqueryhelpe
         moveBookmark: function(id, destination) {
             var dfd = $.Deferred();
 
-
             if($.browser.webkit ) {
-                console.log("Attempting to move ", id, " to ", destination);
-
                 chromex.moveBookmark(id, destination).always(function(result) {
-                    console.log("move result for chrome ", result);
-
                     dfd.resolve(result.id, result.parentId);
                 });
             }
@@ -194,12 +187,33 @@ define(['jquery', 'chromeinterface', 'config', 'alchemy', 'config', 'jqueryhelpe
            }
        },
 
+       createFolderDOM: function(bookmark) {
+           /// TODO refactor into createBookmarkJquery method
+           var  item = bookmark,
+               id = item.id;
+
+           var isFolder = item.url === undefined ? true : false,
+               uri = !isFolder ? 'url(chrome://favicon/' + item.url + ')' : "url(chrome-extension://" + chrome.runtime.id + '/images/folder_closed.png' + ')';
+
+           // Please note: every <li> must have either one or two direct children,
+           // the first one being a container element (such as <div> in the above example), and the (optional) second one being the nested list.
+           var li = $('<li/>').attr({id: item.id, parentid: item.parentId, folder: true}).append($('<div/>', {
+               text: item.title
+           }).append($('<i/>', {
+               float: 'left'
+           }).addClass("fa fa-plus")));
+
+           li.addClass("foldercollapsed");
+
+           return li;
+       },
+
        populateBookmarks : function(rootNode, parentId) {
             var rootNode = rootNode || $('.sortable'),
-                tree = parentId ? this.bookmarksSubTree(parentId) : this.bookmarksTree();
+                tree = parentId ? this.bookmarksSubTree(parentId) : this.bookmarksTree(),
+                me = this;
 
            /// TODO convert api-specific bookmark trees into our own object
-            var me = this;
            var promise = tree.then(function(results) {
 
                var queue = new Queue(),
@@ -232,7 +246,7 @@ define(['jquery', 'chromeinterface', 'config', 'alchemy', 'config', 'jqueryhelpe
                                    'background-image': uri,
                                    'background-repeat': 'no-repeat'
                                }
-                           })
+                           }).attr("url", item.url)
                        );
 
                        parent.append(li);
@@ -241,17 +255,8 @@ define(['jquery', 'chromeinterface', 'config', 'alchemy', 'config', 'jqueryhelpe
                    else{
                        // Please note: every <li> must have either one or two direct children,
                        // the first one being a container element (such as <div> in the above example), and the (optional) second one being the nested list.
-                       var li = $('<li/>').attr({id: item.id, parentid: item.parentId, folder: true}).append($('<div/>', {
-                           text: item.title,
-                           css: {
-                               'background-image': uri,
-                               'background-repeat': 'no-repeat'
-                           }
-                       }).append($('<i/>', {
-                           float: 'left'
-                       }).addClass("fa fa-plus")));
-
-                       var domItems = li.appendTo(parent);
+                       var li = me.createFolderDOM(item),
+                           domItems = li.appendTo(parent);
 
                        // The default list type is <ol>.
                        var domNestedList = $('<ol/>').appendTo(domItems);
@@ -373,14 +378,15 @@ define(['jquery', 'chromeinterface', 'config', 'alchemy', 'config', 'jqueryhelpe
 
            // Expand / collapse folders
            bm.on('click', 'li i', function(e) {
-               $(this).closest('li').toggleClass('mjs-nestedSortable-collapsed').toggleClass('mjs-nestedSortable-expanded');
+               $(this).closest('li').toggleClass('mjs-nestedSortable-collapsed').toggleClass('mjs-nestedSortable-expanded').toggleClass("foldercollapsed").toggleClass("folderexpanded");
                $(this).toggleClass('fa fa-plus').toggleClass('fa fa-minus');
                return false;
            });
 
            // Select all
            $(document).bind('keydown', 'ctrl+a', function() {
-               var descendants = $(".sortable div");
+               var sortable = $(".sortable"),
+                   descendants = sortable.find("li:not([parentid]) > div");
 
                if(descendants.length != 0) {
                    descendants.each(function(index, element) {
@@ -393,7 +399,8 @@ define(['jquery', 'chromeinterface', 'config', 'alchemy', 'config', 'jqueryhelpe
 
            // Clear all
            $(document).bind('keydown', 'ctrl+space', function() {
-               var descendants = $(".sortable div");
+               var sortable = $(".sortable"),
+                   descendants = sortable.find("li:not([parentid]) > div");
 
                if(descendants.length != 0) {
                    descendants.each(function(index, element) {
@@ -405,6 +412,100 @@ define(['jquery', 'chromeinterface', 'config', 'alchemy', 'config', 'jqueryhelpe
            });
 
            return bm;
+       },
+
+       /**
+        * Get all highlighted bookmarks and return an array of {ID, URL} objects
+        * @param {object} nested The nested list to get highlighted elements on.
+        */
+       selectedBookmarks: function(nested) {
+           var selected = nested.find("div.borderhighlight");
+
+           var bookmarks = selected.map(function (index, domElement) {
+               var divElement = $(domElement),
+                   liElement = $(domElement).closest("li");
+
+               return { id: liElement.attr("id"), url: divElement.attr("url") }
+           });
+
+           return bookmarks;
+       },
+
+       /**
+        * Create (DOM operation) the associated folder based on the api update
+        * @param {string} id The id of the bookmark that was created
+        * @param {object} bookmark The created bookmarked
+        */
+       onCreated: function(id, bookmark) {
+           var selectorParent = "#" + bookmark.parentId,
+               parentli = $(selectorParent),
+               parent = parentli.children("ol");
+
+           var li = this.createFolderDOM(bookmark),
+               domItems = li.appendTo(parent);
+
+           // The default list type is <ol>.
+           $('<ol/>').appendTo(domItems);
+
+           // Start collapsed
+           li.addClass('mjs-nestedSortable-collapsed');
+
+       },
+
+       /**
+        * Move (DOM operation) the associated bookmark based on the api update
+        * @param {string} id The id of the bookmark that was moved
+        * @param {string} parentId The parentId that the bookmark was moved to
+        */
+       onMoved: function(id, moveInfo) {
+           var selectorChild = "#" + id,
+               selectorParent = "#" + moveInfo.parentId,
+               parentli = $(selectorParent),
+               parentol = parentli.children("ol");
+
+           $(selectorChild).toggleClass("borderhighlight", false);
+
+           $(selectorChild).detach().appendTo(parentol);
+       },
+
+       attachOnCreatedHandlers: function() {
+           // if chrome
+           var me = this;
+
+           if ( $.browser.webkit ) {
+               chromex.chromeBookmarkOnCreated(_.bind(me.onCreated, me));
+           }
+
+           // if firefox
+           if ( $.browser.mozilla ) {
+                // Must convert firefox output to chrome style
+           }
+       },
+
+       attachOnMovedHandlers: function() {
+           // if chrome
+           if ( $.browser.webkit ) {
+               chromex.chromeBookmarkOnMove(this.onMoved);
+           }
+
+           // if firefox
+           if ( $.browser.mozilla ) {
+               // Must convert firefox output to chrome style
+
+           }
+       },
+
+       rootBookmarks: function() {
+           if ($.browser.webkit) {
+               return ["Bookmarks bar", "Other Bookmarks", "Mobile bookmarks"];
+           }
+       },
+
+       selectedIndexModifier: function(index) {
+           if ($.browser.webkit) {
+               return index + 1;
+           }
        }
+
     }
 });

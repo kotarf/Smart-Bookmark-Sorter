@@ -276,25 +276,63 @@ define(["jquery", "underscore", "jqueryhelpers", "storage", "chromeinterface", "
          * @param {BookmarkTreeNode} bookmark The bookmark to sort. In Firefox, this will be adapted to be identical to a Chrome object.
          * @return {object} deferred The deferred object to resolve [JQuery whenSync].
          */
-        sortBookmarkEx : function (bookmark) {
+        sortBookmarkEx : function (bookmark, rootId) {
             // Make a deferred
             var dfd = $.Deferred(),
+                rootId = rootId || config.rootBookmarksId,
                 me = this;
 
-            // ...sorting...
-            shared.createFoldersByTaxonomy(bookmark.url, config.rootBookmarksId).done(function() {
-                console.log("WTF did this get resolved with", arguments);
-				var folderIds = arguments[0],
-                    lastFolderId = folderIds[arguments.length - 1];
+			shared.createFolderIfNotExists(config.archivesFolder, rootId).done(function(archivesId) {
+				// ...sorting...
+				shared.createFoldersByTaxonomy(bookmark.url, archivesId).done(function() {
+					var folderIds = arguments[0],
+						lastFolderId = folderIds[folderIds.length - 1];
 
-                console.log("The last folder that was created has a id of ", lastFolderId, " and the bookmark has id ", bookmark.id);
-
-                    shared.moveBookmark(bookmark.id, lastFolderId).done(function(id, parentId) {
-                        dfd.resolve(id, parentId);
-                    });
+					shared.moveBookmark(bookmark.id, lastFolderId).done(function(id, parentId) {
+						dfd.resolve(id, parentId);
+					});
+				}).fail(function() {
+					console.log("Failed tp create folders by taxonomy.");
+				});
+			}).fail(function() {
+				deferred.reject(bookmark);
 			});
 
             // Return a promise
+            return dfd.promise();
+        },
+
+        sortBookmarksEx: function (bookmarks, rootId) {
+            var me = this,
+                dfd = $.Deferred(),
+				rootId = rootId || config.otherBookmarksIndex;
+
+			var count = 0;
+            var defFunctors = _.map(bookmarks, function (bookmark) {
+                return function () {
+                    var deferred = arguments[0],
+                        rootId = rootId;
+
+                    // Resolve the deferred in the future.
+                    me.sortBookmarkEx(bookmark, rootId).done(function(id, parentId) {
+                        deferred.resolve({id: id, parentId: parentId});
+						dfd.notify(count);
+                    });
+
+					count++;
+                };
+            });
+
+            var asyncChain = jhelpers.jQueryWhenSync(me, defFunctors);
+
+            asyncChain.done(function(results) {
+                dfd.resolve(arguments);
+            });
+
+            asyncChain.fail(function(results) {
+                dfd.fail(results);
+            });
+
             return dfd.promise();
         },
 

@@ -121,6 +121,14 @@ define(["jquery"], function($){
         },
 
         /**
+         * Attach bookmark move event
+         * @param {function} callback The listener to attach
+         * **/
+        chromeBookmarkOnMove: function (callback) {
+            chrome.bookmarks.onMoved.addListener(callback);
+        },
+
+        /**
          * Attach bookmark create event
          * @param {function} callback The listener to attach
          */

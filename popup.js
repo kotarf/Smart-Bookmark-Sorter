@@ -12,8 +12,17 @@ define(["jquery", "sortapi", "storage", "alchemy", "sharedbrowser", "jquery-ui.m
     // Fill the bookmarks tree
     shared.populateBookmarks();
 
+    // Disable sorting and dragging
+    bookmarks.sortable({
+        disabled: true
+    });
+
     // Get api key from local storage
     var key = storage.getApiKey();
+
+    // Attach signal handlers to browser API
+    shared.attachOnCreatedHandlers();
+    shared.attachOnMovedHandlers();
 
     if (key === null || key === undefined) {
         $('#tabs').tabs('disable', 1); // disable second tab
@@ -115,14 +124,43 @@ define(["jquery", "sortapi", "storage", "alchemy", "sharedbrowser", "jquery-ui.m
         value: 0
     });
 
-    $("#id_folders").selectmenu();
+    var selectMenu = $("#id_folders").selectmenu(),
+        rootBookmarks = shared.rootBookmarks();
+
+    rootBookmarks.forEach(function(value) {
+        console.log(value);
+        $('<option/>', {
+            text: value
+        }).appendTo(selectMenu);
+    });
+
+    $("#id_folders-button").tooltip({
+            items: "span",
+            content: 'Select the output folder for sorted results. All results will be placed in a folder called Archives.',
+            position: { at: "bottom center" }
+    });
+
+    selectMenu.selectmenu( "refresh" );
 
     $("#button_sample").button().click(function () {
 
         // Check if a sort is in progress
         if (!storage.getIsOnManualSorting()) {
             // Sort a sample of bookmarks
-            sortapi.sortSample();
+            //sortapi.sortSample();
+            var selectorParent = "#1",
+                parentli = $(selectorParent),
+                parent = parentli.children("ol");
+
+            console.log("Creating a folder with this parent", selectorParent, parentli, parent);
+
+            /*
+            var li = this.createFolderDOM(bookmark),
+                domItems = li.appendTo(parent);
+
+            // The default list type is <ol>.
+            $('<ol/>').appendTo(domItems);
+            */
         }
         else {
             console.log("!!!!Sort is in progress");
@@ -146,8 +184,35 @@ define(["jquery", "sortapi", "storage", "alchemy", "sharedbrowser", "jquery-ui.m
             "Sort all bookmarks": function () {
                 // Check if a sort is in progress
                 if (!storage.getIsOnManualSorting()) {
-                    // Sort all bookmarks
-                    sortapi.sortAllBookmarks();
+                    // Sort selected bookmarks
+                    var selectedBookmarks = shared.selectedBookmarks(bookmarks);
+
+                    // Output directory
+                    var rootIndex = shared.selectedIndexModifier(selectMenu.prop("selectedIndex"));
+
+                    // Lock
+                    $("#lock_icon").toggleClass("fa-unlock", false);
+                    $("#lock_icon").toggleClass("fa-lock", true);
+                    $("#lock_icon").attr('title',"Sorting operations are in progress. Please wait until they are complete to perform another operation.");
+
+                    // Initialize progress
+                    $("#progressbar_sorting").progressbar("option", "value", 0);
+                    $("#progressbar_sorting").progressbar("option", "max", selectedBookmarks.length);
+
+                    // Sort selected bookmarks via promise
+                    sortapi.sortBookmarksEx(selectedBookmarks, rootIndex).always(function() {
+                        // Unlock
+                        $("#lock_icon").toggleClass("fa-lock", false);
+                        $("#lock_icon").toggleClass("fa-unlock", true);
+                        $("#lock_icon").attr('title',"No sorting operations are in progress; actions may be taken.");
+
+                    }).progress(function(index) {
+                        // Update progress bar
+                        $("#progressbar_sorting").progressbar("option", "value", index);
+                    });
+                }
+                else {
+                    // Sort is in progress
                 }
                 $(this).dialog("close");
             },
@@ -240,38 +305,6 @@ define(["jquery", "sortapi", "storage", "alchemy", "sharedbrowser", "jquery-ui.m
         $("#button_autosort").attr("checked", "checked");
         $("#button_autosort").button("refresh");
     }
-
-    // Add listeners for error messages and progress messages
-    chrome.extension.onMessage.addListener(function (message, sender, sendResponse) {
-        var messageSplit = message.split(",");
-        var messageCode = messageSplit[0];
-        if (messageCode === config.dailyLimitError) {
-            // Display an error dialog
-            $("#dialog_error_sort").dialog("open");
-        }
-        else if (messageCode === config.sortBeginMsg) {
-            var numSorts = parseInt(messageSplit[1]);
-
-            $("#progressbar_sorting").progressbar("option", "value", 0);
-            $("#progressbar_sorting").progressbar("option", "max", numSorts);
-        }
-        else if (messageCode === config.sortSuccessfulMsg) {
-            var indexSort = parseInt(messageSplit[1]);
-
-            // getter
-            var value = $("#progressbar_sorting").progressbar("option", "value");
-
-            // setter
-            $("#progressbar_sorting").progressbar("option", "value", indexSort);
-        }
-        else if (messageCode === config.sortCompleteMsg) {
-            // getter
-            var value = $("#progressbar_sorting").progressbar("option", "value");
-
-            // setter
-            $("#progressbar_sorting").progressbar("option", "value", value + 1);
-        }
-    });
 
     return {}
 });

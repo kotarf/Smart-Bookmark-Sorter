@@ -121,12 +121,14 @@ define(["jquery", "underscore", "sortapi", "alchemy", "storage", "jqueryhelpers"
 
             ok(promise);
 
-            promise.fail(function(result, data) {
+            promise.done(function(result, data) {
+                strictEqual(result, config.unsortedFolderName, " The result is ok, but unsorted.");
                 strictEqual(data.status, config.errorStatus, "Status must be an error in this failed promise");
+                ok(true);
                 done1();
             });
 
-            promise.done(function(result, data) {
+            promise.fail(function() {
                 ok(false);
                 done1();
             });
@@ -278,21 +280,19 @@ define(["jquery", "underscore", "sortapi", "alchemy", "storage", "jqueryhelpers"
         QUnit.test("Create a taxonomy folder structure based on a taxonomy request", function(assert) {
            var done1 = assert.async();
 
-            var promise = crossbrows.createFoldersByTaxonomy("http://www.bennadel.com/blog/2326-jquery-whensync-plugin-for-chaining-asynchronous-callbacks-using-deferred-objects.htm", 1),
-                expectedResult = ["technology and computing","programming languages","javascript"];
+            var promise = crossbrows.createFoldersByTaxonomy("http://www.bennadel.com/blog/2326-jquery-whensync-plugin-for-chaining-asynchronous-callbacks-using-deferred-objects.htm");
             promise.done(function(results) {
                 equal(results.length, 3, "Three elements are included in the returned result.");
                 chrome.bookmarks.removeTree(results[0], $.noop);
                 done1();
             });
-            promise.fail(function(results) {
+            promise.fail(function() {
                 ok(false);
                 done2();
             });
         });
 
         QUnit.module("Sorting");
-
 
         QUnit.test("Sort a bookmark", function(assert) {
             var done1 = assert.async(),
@@ -313,6 +313,36 @@ define(["jquery", "underscore", "sortapi", "alchemy", "storage", "jqueryhelpers"
                 });
             });
 
+        });
+
+        QUnit.test("Sort three bookmarks", function(assert) {
+            var done1 = assert.async(),
+                bookmarkA = {
+                    title: "GE Careers",
+                    url: "http://www.ge.com/careers"
+                },
+                bookmarkB = {
+                    title: "Lockheed Careers",
+                    url: "http://www.lockheedmartinjobs.com/"
+                },
+                bookmarkC = {
+                    title: "Tradeweb Careers",
+                    url: "http://www.tradeweb.com/careers/"
+                }
+
+            chrome.bookmarks.create(bookmarkA, function(resultA) {
+                chrome.bookmarks.create(bookmarkB, function(resultB) {
+                    chrome.bookmarks.create(bookmarkC, function(resultC) {
+                        SmartBookmarkSorter.sortBookmarksEx([resultA, resultB, resultC]).always(function(results) {
+                            ok(results);
+                            strictEqual(results.length, 3,"Three bookmarks were sorted");
+                            equal(results[0].parentId, results[1].parentId, "Two of the three were sorted into the same parent folder")
+                            chrome.bookmarks.removeTree(results[0].parentId, $.noop);
+                            done1();
+                        });
+                    });
+                });
+            });
         });
 
         // Move a bookmark (folder) via a promise

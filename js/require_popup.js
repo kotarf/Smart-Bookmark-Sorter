@@ -14,7 +14,7 @@ requirejs.config({
         'lib/jquery.mjs.nestedSortable'  : ['jquery-ui'],
         'lib/jquery.browser' : ['jquery'],
         'lib/jquery.hotkeys' : ['jquery'],
-        'lib/jquery.whenSync' : ['jquery'],
+        'lib/jquery.whensync' : ['jquery'],
         'lib/underscore.string.js' : ['underscore'],
         'lib/Queue.src' : []
     }

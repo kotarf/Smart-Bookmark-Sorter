@@ -22,7 +22,7 @@ define({
     otherBookmarksIndex : 		1,
     sampleNumber : 				5,
     categoryErrorScore :		0.01,
-    taxonomyErrorScore :		0.55,
+    taxonomyErrorScore :		0.65,
     unsortedFolderName :		"unsorted",
     redoCode :					"_REDO",
     okStatus : 					"OK",
@@ -42,5 +42,6 @@ define({
     titleProperty:              "title",
     taxonomyProperty:           "taxonomy",
     taxonomyNestedProperty:     "label",
-    taxonomyDelimiter:          "/"
+    taxonomyDelimiter:          "/",
+    archivesFolder:             "Archives"
 });

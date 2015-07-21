@@ -129,28 +129,24 @@ define(["underscore", "jqueryhelpers", "storage", "config"], function(_, jhelper
                         }
                         else
                         {
-                            def.reject(result, data);
+                            // Failures on score are resolved to unsorted /// TODO add retry on low score
+                            def.resolve(config.unsortedFolderName, data);
                         }
                     }
 
                     // status is not ok
-                    else if(status === config.errorStatus)
+                    else
                     {
                         // we have reached our daily limit
-                        if(statusInfo === config.dailyLimitError || statusInfo.includes(config.cannotRetrieveError))
+                        if(statusInfo === config.dailyLimitError || statusInfo === config.invalidApiKeyError)
                         {
                             def.reject(result, data);
                         }
                         else
                         {
-                            // Exhausted all options- resolve as "unsorted"
+                            // Unknown (but benign)- resolve as "unsorted" /// TODO add retry on invalid html
                             def.resolve(config.unsortedFolderName, data);
                         }
-                    }
-                    else
-                    {
-                        // Exhausted all options- resolve as "unsorted"
-                        def.resolve(config.unsortedFolderName, data);
                     }
                 });
 
@@ -183,7 +179,13 @@ define(["underscore", "jqueryhelpers", "storage", "config"], function(_, jhelper
         alchemyTaxonomyObject : function()
         {
             var accept = function(data) {
-                return data.taxonomy[0].score > config.taxonomyErrorScore;
+                if(!data.taxonomy || !data.taxonomy[0]) {
+                    console.log("No taxonomy in data", data);
+                    return false;
+                }
+                else {
+                    return data.taxonomy[0].score > config.taxonomyErrorScore;
+                }
             };
             var me = this;
 

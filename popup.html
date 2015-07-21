@@ -59,23 +59,15 @@
 		<img id="img_export_a" src="images/Chrome_Export_Bookmarks_Old.png" alt="Chrome Export Bookmarks">
     </div>
 	<div id="tabs-3">
-		<p>Select the folders and bookmarks you would like to sort by Category and Title.</p>
-		<p>
-			<label for="spinner_archivedays">Sort bookmarks older than:</label>
-			<input id="spinner_archivedays" name="value" title="Bookmarks older than this amount will be sorted." /> days
-		</p>
+		<p>Select the folders and bookmarks you would like to sort in the directory tree located below.</p>
 		<div id="container1" style="width:500px">
-            <select name="folders" id="id_folders">
-                <option>Bookmarks bar</option>
-                <option>Other Bookmarks</option>
-                <option>Mobile bookmarks</option>
-            </select>
+            <select name="folders" id="id_folders"></select>
 			<button id="button_sample" title="Sort a sample of bookmarks to see how it works before committing.">Sort Sample</button>
 			<button id="button_sort" title="Sort the selected bookmarks.">Sort Now</button>
-			<i class="fa fa-unlock" title="No sorting operations are in progress; actions may be taken."></i>
+			<i id="lock_icon" class="fa fa-unlock" title="No sorting operations are in progress; actions may be taken."></i>
 		</div>
 		<div id="progressbar_sorting"></div>
-		<div id="dialog_confirm_sort" title="Sort all bookmarks?">
+		<div id="dialog_confirm_sort" title="Sort bookmarks?">
 			<p><span class="ui-icon ui-icon-alert" style="float: left; margin: 0 7px 20px 0;"></span>The selected bookmarks will be sorted. Please make sure you have backed them up. Are you sure?</p>
 		</div>
 		<div id="dialog_error_sort" title="Error - Daily Transaction Limit Exceeded">
