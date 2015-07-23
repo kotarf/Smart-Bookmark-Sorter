@@ -276,23 +276,33 @@ define(["jquery", "underscore", "jqueryhelpers", "storage", "chromeinterface", "
          * @param {BookmarkTreeNode} bookmark The bookmark to sort. In Firefox, this will be adapted to be identical to a Chrome object.
          * @return {object} deferred The deferred object to resolve [JQuery whenSync].
          */
-        sortBookmarkEx : function (bookmark, rootId) {
+        sortBookmarkEx : function (bookmark, rootId, sortAction, maxLevels) {
             // Make a deferred
             var dfd = $.Deferred(),
-                rootId = rootId || config.rootBookmarksId,
-                me = this;
+				bookmark = bookmark,
+				rootId = _.isUndefined(rootId) ? config.rootBookmarksId : rootId,
+				maxLevels = maxLevels || config.defaultTaxonomyLevels;
 
 			shared.createFolderIfNotExists(config.archivesFolder, rootId).done(function(archivesId) {
 				// ...sorting...
-				shared.createFoldersByTaxonomy(bookmark.url, archivesId).done(function() {
+				shared.createFoldersByTaxonomy(bookmark.url, archivesId, maxLevels).done(function() {
 					var folderIds = arguments[0],
 						lastFolderId = folderIds[folderIds.length - 1];
 
-					shared.moveBookmark(bookmark.id, lastFolderId).done(function(id, parentId) {
-						dfd.resolve(id, parentId);
-					});
+					// Copy the bookmark (default)
+					if(sortAction) {
+						shared.createBookmarkIfNotExists(lastFolderId, bookmark.title, bookmark.url).done(function(id, parentId) {
+							dfd.resolve(id, parentId);
+						});
+					}
+					else {
+						// Otherwise, move the bookmark
+						shared.moveBookmark(bookmark.id, lastFolderId).done(function (id, parentId) {
+							dfd.resolve(id, parentId);
+						});
+					}
 				}).fail(function() {
-					console.log("Failed tp create folders by taxonomy.");
+					console.log("Failed to create folders by taxonomy.");
 				});
 			}).fail(function() {
 				deferred.reject(bookmark);
@@ -302,19 +312,19 @@ define(["jquery", "underscore", "jqueryhelpers", "storage", "chromeinterface", "
             return dfd.promise();
         },
 
-        sortBookmarksEx: function (bookmarks, rootId) {
+        sortBookmarksEx: function (bookmarks, rootId, sortAction, maxLevels) {
             var me = this,
                 dfd = $.Deferred(),
-				rootId = rootId || config.otherBookmarksIndex;
+				rootId = _.isUndefined(rootId) ? config.rootBookmarksId : rootId;
 
 			var count = 0;
             var defFunctors = _.map(bookmarks, function (bookmark) {
                 return function () {
-                    var deferred = arguments[0],
-                        rootId = rootId;
+                    var deferred = arguments[0];
+					// rootId = rootId // why is that a problem?
 
                     // Resolve the deferred in the future.
-                    me.sortBookmarkEx(bookmark, rootId).done(function(id, parentId) {
+                    me.sortBookmarkEx(bookmark, rootId, sortAction, maxLevels).done(function(id, parentId) {
                         deferred.resolve({id: id, parentId: parentId});
 						dfd.notify(count);
                     });

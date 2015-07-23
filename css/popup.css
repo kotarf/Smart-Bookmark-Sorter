@@ -130,6 +130,11 @@
 		  }
 	}
 
+	/* settings */
+	#container_settings_cull {
+		padding-bottom: 5%;
+	}
+
 	/* select menu, sort buttons TODO is there a way to just add this to certain buttons*/
 	.ui-selectmenu-button {
 		vertical-align : middle !important;
@@ -138,3 +143,9 @@
 	select {
 		width: 125%;
 	}
+
+    /* icons */
+    .placeholder {
+        display: inline-block;
+        width: 2%;
+    }

@@ -194,6 +194,55 @@ define(['jqueryhelpers', 'config'], function(jhelpers, config) {
         getIsOnAlarmSorting: function () {
             return jhelpers.jQueryStorageGetValue(config.isOnIntervalSortingKey) || false;
 
-        }
+        },
+
+        /**
+         * Set the maximum number of folders to create when using taxonomy
+         * @config {string} [maxTaxonomyFoldersKey]
+         * @param {int} value
+         */
+        setMaxTaxonomyLevels: function (value) {
+            jhelpers.jQueryStorageSetValue(config.maxTaxonomyFoldersKey, value);
+        },
+
+        /**
+         * Get the maximum number of folders to create when using taxonomy
+         * @config {string} [maxTaxonomyFoldersKey]
+         * @config {string} [defaultTaxonomyLevels]
+         * @returns {int}
+         */
+        getMaxTaxonomyLevels: function () {
+            var taxonomyLevels = jhelpers.jQueryStorageGetValue(config.maxTaxonomyFoldersKey);
+
+            return taxonomyLevels === null ? config.defaultTaxonomyLevels : taxonomyLevels;
+        },
+
+
+        setIsOnCullBookmarks: function (value) {
+            jhelpers.jQueryStorageSetValue(config.isOnCullBookmarks, value);
+        },
+
+
+        getIsOnCullBookmarks: function () {
+            return jhelpers.jQueryStorageGetValue(config.isOnCullBookmarks) || false;
+        },
+
+        setCullNumber: function (value) {
+            jhelpers.jQueryStorageSetValue(config.cullNumber, value);
+        },
+
+        getCullNumber: function () {
+            var cullLevels = jhelpers.jQueryStorageGetValue(config.cullNumber);
+
+            return cullLevels === null ? config.defaultCullNumber : cullLevels;
+        },
+
+        setSortAction: function (value) {
+            jhelpers.jQueryStorageSetValue(config.sortAction, value);
+        },
+
+        getSortAction: function () {
+            return jhelpers.jQueryStorageGetValue(config.sortAction);
+        },
     };
 });

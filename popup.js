@@ -2,7 +2,7 @@ define(["jquery", "sortapi", "storage", "alchemy", "sharedbrowser", "jquery-ui.m
     "lib/jquery.mjs.nestedSortable", "lib/jquery.total-storage", "lib/jquery.hotkeys"], function ($, sortapi, storage, alchemy, shared) {
     $(document).tooltip();
 
-    $("#tabs").tabs({heightStyle: "content"});
+    $("#tabs").tabs({heightStyle: "content", hide: 'fade', show: 'fade'});
 
     var bookmarks = shared.nestedList();
 
@@ -30,7 +30,7 @@ define(["jquery", "sortapi", "storage", "alchemy", "sharedbrowser", "jquery-ui.m
         $('#tabs').tabs('disable', 3); // disable fourth tab
     }
     else {
-        //$('#tabs').tabs('disable', 0); // disable first tab
+        $('#tabs').tabs('disable', 0); // disable first tab
         $("#tabs").tabs({active: 2});
     }
 
@@ -47,11 +47,10 @@ define(["jquery", "sortapi", "storage", "alchemy", "sharedbrowser", "jquery-ui.m
                 // Save the state and the key
                 storage.setApiKey(key);
 
-                //$('#tabs').tabs('disable', 0); // disable first tab
+                $('#tabs').tabs('disable', 0); // disable first tab
 
                 // Unlock and go to the next tab
                 $("#tabs").tabs("enable", 1).tabs("option", "active", 1);
-                ;
 
                 $(this).dialog("close");
             },
@@ -107,19 +106,6 @@ define(["jquery", "sortapi", "storage", "alchemy", "sharedbrowser", "jquery-ui.m
         $("#button_continue").button("disable");
     }
 
-    $("#spinner_archivedays").spinner({
-        min: 0,
-        stop: function (event, ui) {
-            // Set the archive days
-            var value = $("#spinner_archivedays").spinner("value");
-            storage.setOldBookmarkDays(value);
-        }
-    });
-
-    var oldBookmarkDays = storage.getOldBookmarkDays();
-
-    $("#spinner_archivedays").spinner("value", oldBookmarkDays);
-
     $("#progressbar_sorting").progressbar({
         value: 0
     });
@@ -128,7 +114,6 @@ define(["jquery", "sortapi", "storage", "alchemy", "sharedbrowser", "jquery-ui.m
         rootBookmarks = shared.rootBookmarks();
 
     rootBookmarks.forEach(function(value) {
-        console.log(value);
         $('<option/>', {
             text: value
         }).appendTo(selectMenu);
@@ -143,24 +128,10 @@ define(["jquery", "sortapi", "storage", "alchemy", "sharedbrowser", "jquery-ui.m
     selectMenu.selectmenu( "refresh" );
 
     $("#button_sample").button().click(function () {
-
         // Check if a sort is in progress
         if (!storage.getIsOnManualSorting()) {
             // Sort a sample of bookmarks
             //sortapi.sortSample();
-            var selectorParent = "#1",
-                parentli = $(selectorParent),
-                parent = parentli.children("ol");
-
-            console.log("Creating a folder with this parent", selectorParent, parentli, parent);
-
-            /*
-            var li = this.createFolderDOM(bookmark),
-                domItems = li.appendTo(parent);
-
-            // The default list type is <ol>.
-            $('<ol/>').appendTo(domItems);
-            */
         }
         else {
             console.log("!!!!Sort is in progress");
@@ -170,7 +141,77 @@ define(["jquery", "sortapi", "storage", "alchemy", "sharedbrowser", "jquery-ui.m
     $("#button_sort").button().click(function () {
         // Open a dialog box
         $("#dialog_confirm_sort").dialog("open");
+    });
 
+    $("#button_settings").button({
+        icons: {
+            primary: "ui-icon-gear",
+            secondary: "ui-icon-triangle-1-s"
+        },
+        text: false
+    }).click(function() {
+        $("#dialog_manual_settings").dialog("open");
+    });
+
+    $( "#spinner_settings_taxonomylevels" ).spinner({
+        min: 1,
+        max: 5,
+        stop: function () {
+            var value = $(this).spinner("value");
+            storage.setMaxTaxonomyLevels(value);
+        }
+    }).spinner( "value", storage.getMaxTaxonomyLevels() );
+
+    $( "#spinner_cull_num" ).spinner({
+        min: 1,
+        stop: function () {
+            var value = $(this).spinner("value");
+            storage.setCullNumber(value);
+        }
+    }).spinner( "value", storage.getCullNumber() );
+
+    $( "#check_cull" ).button().on("change", function() {
+        if($(this).is(":checked")) {
+            storage.setIsOnCullBookmarks(true);
+        } else {
+            storage.setIsOnCullBookmarks(false);
+        }
+    }).prop('checked', storage.getIsOnCullBookmarks()).button("refresh");
+
+    $( "#radio_sortAction" ).buttonset();
+
+    $( "#radio_sortMode" ).buttonset();
+
+    $('#radio_create').on("change", function(){
+        storage.setSortAction(true);
+    });
+    $('#radio_move').on("change", function(){
+        storage.setSortAction(false);
+    });
+
+    if(storage.getSortAction())
+    {
+        $('#radio_create').prop("checked", true);
+    }
+    else
+    {
+        $('#radio_move').prop("checked", true);
+    }
+
+    $( "#radio_sortAction" ).buttonset('refresh');
+
+    $('#radio_category').on("change", function(){
+
+    });
+    $('#radio_taxonomy').on("change", function(){
+
+    });
+
+    $("#dialog_manual_settings").dialog({
+        height: 300,
+        width: 400,
+        modal: true,
+        autoOpen: false
     });
 
     $("#dialog_confirm_sort").dialog({
@@ -188,7 +229,9 @@ define(["jquery", "sortapi", "storage", "alchemy", "sharedbrowser", "jquery-ui.m
                     var selectedBookmarks = shared.selectedBookmarks(bookmarks);
 
                     // Output directory
-                    var rootIndex = shared.selectedIndexModifier(selectMenu.prop("selectedIndex"));
+                    var rootIndex = shared.selectedIndexModifier(selectMenu.prop("selectedIndex")),
+                        sortAction = storage.getSortAction(),
+                        maxLevels = storage.getMaxTaxonomyLevels();
 
                     // Lock
                     $("#lock_icon").toggleClass("fa-unlock", false);
@@ -200,7 +243,7 @@ define(["jquery", "sortapi", "storage", "alchemy", "sharedbrowser", "jquery-ui.m
                     $("#progressbar_sorting").progressbar("option", "max", selectedBookmarks.length);
 
                     // Sort selected bookmarks via promise
-                    sortapi.sortBookmarksEx(selectedBookmarks, rootIndex).always(function() {
+                    sortapi.sortBookmarksEx(selectedBookmarks, rootIndex, sortAction, maxLevels).always(function() {
                         // Unlock
                         $("#lock_icon").toggleClass("fa-lock", false);
                         $("#lock_icon").toggleClass("fa-unlock", true);

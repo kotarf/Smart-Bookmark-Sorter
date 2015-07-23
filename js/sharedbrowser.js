@@ -7,7 +7,7 @@ define(['jquery', 'chromeinterface', 'config', 'alchemy', 'config', 'jqueryhelpe
        createFolderIfNotExists : function(title, parentId) {
            var dfd = $.Deferred(),
                me = this,
-               parentId = parentId || 1;
+               parentId = parentId || config.rootBookmarksId;
 
            if($.browser.webkit) {
                chromex.findFolder(title).done(function(results) {
@@ -61,7 +61,7 @@ define(['jquery', 'chromeinterface', 'config', 'alchemy', 'config', 'jqueryhelpe
         * @param {string} url The url to lookup.
         * @param {string} parentId The parentId to create the first folder in
         */
-       createFoldersByTaxonomy: function (url, startingParentId) {
+       createFoldersByTaxonomy: function (url, startingParentId, maxLevels) {
            var me = this,
                dfd = $.Deferred();
 
@@ -71,9 +71,15 @@ define(['jquery', 'chromeinterface', 'config', 'alchemy', 'config', 'jqueryhelpe
 
                bestResult = bestResult || results;
 
-               var splitResults = bestResult.split(config.taxonomyDelimiter),
-                   taxonomy = _.isEmpty(splitResults[0]) ? splitResults.splice(1) : splitResults.splice(0)
+               var splitResults = bestResult.split(config.taxonomyDelimiter);
+
+               var taxonomy = _.isEmpty(splitResults[0]) ? splitResults.splice(1) : splitResults.splice(0);
                console.log("Taxonomy", taxonomy);
+
+               if(maxLevels) {
+                   taxonomy = taxonomy.splice(0, maxLevels);
+                   console.log("Spliced taxonomy results off: ", taxonomy, " based on", maxLevels);
+               }
 
                var defFunctors = _.map(taxonomy, function (element) {
                    return function () {
@@ -110,6 +116,13 @@ define(['jquery', 'chromeinterface', 'config', 'alchemy', 'config', 'jqueryhelpe
            if($.browser.webkit)
            {
                 return chromex.searchFolder(title).promise();
+           }
+       },
+
+       searchBookmark : function(title, url) {
+           if($.browser.webkit)
+           {
+               return chromex.searchBookmark(title, url).promise();
            }
        },
 
@@ -151,6 +164,52 @@ define(['jquery', 'chromeinterface', 'config', 'alchemy', 'config', 'jqueryhelpe
             return dfd.promise();
         },
 
+       createBookmark: function(destination, title, url) {
+           var dfd = $.Deferred();
+
+           if($.browser.webkit ) {
+               var bookmark = {
+                   parentId: destination,
+                   title: title,
+                   url: url
+               }
+
+               chromex.createBookmark(bookmark).always(function(result) {
+                   dfd.resolve(result.id, result.parentId);
+               });
+           }
+
+           return dfd.promise();
+       },
+
+       createBookmarkIfNotExists: function(parentId, title, url) {
+           var dfd = $.Deferred(),
+               me = this,
+               parentId = parentId || config.rootBookmarksId;
+
+           if($.browser.webkit) {
+               chromex.findBookmark(title, url).done(function(results) {
+                   var bookmark =_.filter(results, function(element) {
+                       return element.parentId == parentId;
+                   })[0];
+                   if(bookmark) {
+                       dfd.resolve(bookmark.id, parentId);
+                   }
+                   else {
+                       me.createBookmark(parentId, title, url).done(function(result) {
+                           dfd.resolve(result.id, parentId);
+                       });
+                   }
+               }).fail(function() {
+                   me.createBookmark(parentId, title, url).done(function(result) {
+                       dfd.resolve(result.id, parentId);
+                   });
+               });
+           }
+
+           return dfd.promise();
+       },
+
         bookmarksSubTree: function(id) {
             var dfd = $.Deferred();
 
@@ -189,11 +248,7 @@ define(['jquery', 'chromeinterface', 'config', 'alchemy', 'config', 'jqueryhelpe
 
        createFolderDOM: function(bookmark) {
            /// TODO refactor into createBookmarkJquery method
-           var  item = bookmark,
-               id = item.id;
-
-           var isFolder = item.url === undefined ? true : false,
-               uri = !isFolder ? 'url(chrome://favicon/' + item.url + ')' : "url(chrome-extension://" + chrome.runtime.id + '/images/folder_closed.png' + ')';
+           var  item = bookmark;
 
            // Please note: every <li> must have either one or two direct children,
            // the first one being a container element (such as <div> in the above example), and the (optional) second one being the nested list.
@@ -204,6 +259,25 @@ define(['jquery', 'chromeinterface', 'config', 'alchemy', 'config', 'jqueryhelpe
            }).addClass("fa fa-plus")));
 
            li.addClass("foldercollapsed");
+
+           return li;
+       },
+
+       createBookmarkDOM: function(bookmark) {
+           // Do <div> processing //
+           var item = bookmark,
+               uri = 'url(chrome://favicon/' + item.url + ')';
+
+           // If bookmark
+           var li = $('<li/>').attr("id", item.id).append(
+               $('<div/>', {
+                   text : item.title,
+                   css: {
+                       'background-image': uri,
+                       'background-repeat': 'no-repeat'
+                   }
+               }).attr("url", item.url)
+           );
 
            return li;
        },
@@ -239,15 +313,7 @@ define(['jquery', 'chromeinterface', 'config', 'alchemy', 'config', 'jqueryhelpe
                    // If bookmark
                    if(!isFolder)
                    {
-                       var li = $('<li/>').attr("id", item.id).append(
-                           $('<div/>', {
-                               text : item.title,
-                               css: {
-                                   'background-image': uri,
-                                   'background-repeat': 'no-repeat'
-                               }
-                           }).attr("url", item.url)
-                       );
+                       var li = me.createBookmarkDOM(item);
 
                        parent.append(li);
                    }
@@ -425,7 +491,7 @@ define(['jquery', 'chromeinterface', 'config', 'alchemy', 'config', 'jqueryhelpe
                var divElement = $(domElement),
                    liElement = $(domElement).closest("li");
 
-               return { id: liElement.attr("id"), url: divElement.attr("url") }
+               return { id: liElement.attr("id"), url: divElement.attr("url"), title: divElement.text() }
            });
 
            return bookmarks;
@@ -441,14 +507,25 @@ define(['jquery', 'chromeinterface', 'config', 'alchemy', 'config', 'jqueryhelpe
                parentli = $(selectorParent),
                parent = parentli.children("ol");
 
-           var li = this.createFolderDOM(bookmark),
-               domItems = li.appendTo(parent);
+           var li = this.createFolderDOM(bookmark);
 
-           // The default list type is <ol>.
-           $('<ol/>').appendTo(domItems);
+           if(_.isUndefined(bookmark.url))
+           {
+               var li = this.createFolderDOM(bookmark),
+                   domItems = li.appendTo(parent);
 
-           // Start collapsed
-           li.addClass('mjs-nestedSortable-collapsed');
+               // The default list type is <ol>.
+               $('<ol/>').appendTo(domItems);
+
+               // Start collapsed
+               li.addClass('mjs-nestedSortable-collapsed');
+           }
+           else
+           {
+               var li = this.createBookmarkDOM(bookmark);
+
+               li.appendTo(parent);
+           }
 
        },
 

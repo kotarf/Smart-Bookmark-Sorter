@@ -51,6 +51,27 @@ define(["jquery"], function($){
             return dfd.promise();
         },
 
+        findBookmark: function(title, url) {
+            var dfd = $.Deferred(),
+                queryObj = {
+                    title: title,
+                    url: url
+                };
+
+            chrome.bookmarks.search(queryObj, function(results) {
+                if(results === undefined || results.length === 0)
+                {
+                    dfd.reject(results);
+                }
+                else
+                {
+                    dfd.resolve(results);
+                }
+            });
+
+            return dfd.promise();
+        },
+
         /**
          * Get all children bookmarks at id
          * @param {string} id The id of parent

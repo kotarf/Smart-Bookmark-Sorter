@@ -65,6 +65,8 @@
 			<button id="button_sample" title="Sort a sample of bookmarks to see how it works before committing.">Sort Sample</button>
 			<button id="button_sort" title="Sort the selected bookmarks.">Sort Now</button>
 			<i id="lock_icon" class="fa fa-unlock" title="No sorting operations are in progress; actions may be taken."></i>
+			<span class="placeholder">&nbsp</span>
+			<button id="button_settings">Settings</button>
 		</div>
 		<div id="progressbar_sorting"></div>
 		<div id="dialog_confirm_sort" title="Sort bookmarks?">
@@ -75,6 +77,27 @@
 		</div>
 		<div id="wrapper">
 			<ol class="sortable"></ol>
+		</div>
+		<div id="dialog_manual_settings" title="Manual sort settings">
+			<input hidden autofocus>
+			<p>These advanced settings will take effect immediately for manual sorting.</p>
+            <p>
+                <label for="spinner_settings_taxonomylevels">The maximum number of nested taxonomy levels:</label>
+                <input id="spinner_settings_taxonomylevels" name="value">
+            </p>
+            <div id="container_settings_cull" style="width:500px">
+				<input type="checkbox" id="check_cull"><label for="check_cull">Cull bookmarks</label>
+				<label for="spinner_cull_num"># bookmarks</label>
+				<input id="spinner_cull_num">
+			</div>
+			<div id="radio_sortAction">
+				<input type="radio" id="radio_create" name="radio1"><label for="radio_create">Create</label>
+				<input type="radio" id="radio_move" name="radio1"><label for="radio_move">Move</label>
+			</div>
+            <div id="radio_sortMode">
+                <input type="radio" id="radio_taxonomy" name="radio2"><label for="radio_taxonomy">Taxonomy</label>
+                <input type="radio" id="radio_category" name="radio2"><label for="radio_category">Category/Title</label>
+            </div>
 		</div>
 	</div>
     <div id="tabs-4">
