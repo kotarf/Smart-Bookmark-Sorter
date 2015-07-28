@@ -582,6 +582,58 @@ define(['jquery', 'chromeinterface', 'config', 'alchemy', 'config', 'jqueryhelpe
            if ($.browser.webkit) {
                return index + 1;
            }
+       },
+
+       removeBookmark: function(id) {
+         if($.browser.webkit) {
+            return chromex.removeBookmark(id);
+         }
+       },
+
+       cullFolder: function(id, minimum) {
+           var dfd = $.Deferred(),
+               me = this;
+
+           // If folder has less than minimum bookmarks, move to parent and
+           if ( $.browser.webkit ) {
+               chromex.getBookmark(id).done(function(result) {
+                  var children = result.children;
+                  if(children < minimum)  {
+                      var promises = [];
+
+                      _.each(children, function(element) {
+                          var promise = me.moveBookmark(element.id, result.parentId).promise();
+
+                          promises.push(promise);
+                      });
+
+                      $.when(promises).then(function() {
+                         me.removeBookmark(id).always(function() {
+                             dfd.resolve();
+                         });
+                      });
+
+                      return dfd.promise();
+                  }
+               }).fail(function() {
+                   dfd.reject();
+               });
+           }
+       },
+
+       cullTree: function(id) {
+           var me = this,
+               queue=new Queue();
+
+           // DFS tree traversal
+           if($.browser.webkit) {
+               me.bookmarksSubTree(id).always(function(results){
+                    while(!_.isEmpty(stack)) {
+                        var element = stack.pop();
+                    }
+
+               })
+           }
        }
 
     }

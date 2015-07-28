@@ -72,6 +72,23 @@ define(["jquery"], function($){
             return dfd.promise();
         },
 
+        getBookmark: function(id) {
+            var dfd = $.Deferred();
+
+            chrome.bookmarks.get(id, function(result) {
+                if(_.isUndefined(result))
+                {
+                    dfd.reject(results);
+                }
+                else
+                {
+                    dfd.resolve(result);
+                }
+            });
+
+            return dfd.promise();
+        },
+
         /**
          * Get all children bookmarks at id
          * @param {string} id The id of parent
@@ -87,8 +104,14 @@ define(["jquery"], function($){
          * @param {string} id The id of the bookmark to remove
          * @param {function} callback The callback to run after removing
          */
-        removeBookmark: function (id, callback) {
-            chrome.bookmarks.remove(id, callback);
+        removeBookmark: function (id) {
+            var dfd = $.Deferred();
+
+            chrome.bookmarks.remove(id, function() {
+                dfd.resolve();
+            });
+
+            return dfd.promise();
         },
 
         /**
@@ -257,14 +280,6 @@ define(["jquery"], function($){
             });
 
             return dfd.promise();
-        },
-
-        /**
-         * Send a message to the rest of the extension
-         * @param {string} message The message to send
-         */
-        chromeSendMessage: function (message) {
-            chrome.runtime.sendMessage(message);
         },
 
         /**
