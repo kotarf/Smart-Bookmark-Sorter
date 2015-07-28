@@ -375,8 +375,8 @@ define(['jquery', 'chromeinterface', 'config', 'alchemy', 'config', 'jqueryhelpe
 
            bm.on('click', 'div', function(e) {
 
-               var target = $(e.target);
-               parentli = target.closest('li');
+               var target = $(e.target),
+                    parentli = target.closest('li');
 
                e.preventDefault();
 
@@ -432,7 +432,7 @@ define(['jquery', 'chromeinterface', 'config', 'alchemy', 'config', 'jqueryhelpe
                else {
                    // Highlight all descendants if it is a folder
                    var ol = parentli.children("ol"),
-                       descendants = ol.find("div");
+                       descendants = ol.find("li:not([parentid]) > div");
 
                    descendants.each(function(index, element) {
                        $(element).toggleClass("borderhighlight");
