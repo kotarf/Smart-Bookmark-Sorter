@@ -219,7 +219,7 @@ define(['jquery', 'chromeinterface', 'config', 'alchemy', 'config', 'jqueryhelpe
                     id = cfg.rootBookmarksId;
                 }
 
-                return chromex.chromeGetSubTree(id).then();
+                dfd = chromex.chromeGetSubTree(id).promise();
             }
 
             // if firefox
@@ -231,8 +231,14 @@ define(['jquery', 'chromeinterface', 'config', 'alchemy', 'config', 'jqueryhelpe
                 return null;
             }
 
-            // null
+            return dfd.promise();
         },
+
+       getChildren: function(id) {
+           if ( $.browser.webkit ) {
+               return chromex.getBookmarkChildren(id).promise();
+           }
+       },
 
        bookmarksTree: function() {
            // if chrome
@@ -590,19 +596,22 @@ define(['jquery', 'chromeinterface', 'config', 'alchemy', 'config', 'jqueryhelpe
          }
        },
 
-       cullFolder: function(id, minimum) {
+       cullFolder: function(bookmark, minimum) {
            var dfd = $.Deferred(),
+               id = bookmark.id,
+               parentId = bookmark.parentId,
                me = this;
 
            // If folder has less than minimum bookmarks, move to parent and
            if ( $.browser.webkit ) {
-               chromex.getBookmark(id).done(function(result) {
-                  var children = result.children;
-                  if(children < minimum)  {
+               me.getChildren(id).done(function(results) {
+                  var children = results;
+
+                  if(_.isUndefined(children) || children.length < minimum)  {
                       var promises = [];
 
                       _.each(children, function(element) {
-                          var promise = me.moveBookmark(element.id, result.parentId).promise();
+                          var promise = me.moveBookmark(element.id, parentId).promise();
 
                           promises.push(promise);
                       });
@@ -612,29 +621,72 @@ define(['jquery', 'chromeinterface', 'config', 'alchemy', 'config', 'jqueryhelpe
                              dfd.resolve();
                          });
                       });
-
-                      return dfd.promise();
                   }
                }).fail(function() {
                    dfd.reject();
                });
            }
+
+           return dfd.promise();
        },
 
-       cullTree: function(id) {
+       cullTree: function(id, minimum) {
            var me = this,
-               queue=new Queue();
+               queue = new Queue(),
+               stack = new Array(),
+               tree = this.bookmarksSubTree(id),
+               defFunctors = [],
+               dfd = $.Deferred();
 
-           // DFS tree traversal
-           if($.browser.webkit) {
-               me.bookmarksSubTree(id).always(function(results){
-                    while(!_.isEmpty(stack)) {
-                        var element = stack.pop();
-                    }
+           tree.done(function(results) {
+               _.each(results, function(element) {
+                   if(!element.url) {
+                       stack.push(element);
+                       queue.enqueue(element);
+                   }
+               });
 
-               })
-           }
+               while(!queue.isEmpty()) {
+                   var bookmark = queue.dequeue(),
+                       children = bookmark.children;
+
+                   if(children) {
+                       _.each(children, function(child) {
+
+                           if(!child.url) {
+                               queue.enqueue(child);
+                               stack.push(child);
+                           }
+                       });
+                   }
+               }
+
+               while(!_.isEmpty(stack)) {
+                   var folder = stack.pop();
+                   defFunctors.push(function () {
+                       var deferred = arguments[0];
+
+                       // Resolve the deferred in the future.
+                       me.cullFolder(folder, minimum).done(function() {
+                           deferred.resolve();
+                       }).fail(function() {
+                           deferred.fail();
+                       });
+                   });
+               }
+
+               var asyncChain = jhelpers.jQueryWhenSync(me, defFunctors);
+
+               asyncChain.done(function() {
+                   dfd.resolve();
+               });
+
+               asyncChain.fail(function() {
+                   dfd.fail();
+               });
+           });
+
+           return dfd.promise();
        }
-
     }
 });

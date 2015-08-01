@@ -345,6 +345,49 @@ define(["jquery", "underscore", "sortapi", "alchemy", "storage", "jqueryhelpers"
             });
         });
 
+        QUnit.test("Cull a folder", function(assert) {
+           var done1 = assert.async(),
+               title = "Tradeweb Careers",
+                folderA = {
+                    title: "Test1",
+                },
+               folderB = {
+                    title: "Test2",
+                },
+               folderC = {
+                    title: "Test3",
+                },
+                bookmarkA = {
+                    title: title,
+                    url: "http://www.tradeweb.com/careers/"
+                };
+
+            chrome.bookmarks.create(folderA, function(resultA) {
+                folderB.parentId = resultA.id;
+
+                chrome.bookmarks.create(folderB, function(resultB) {
+
+                    folderC.parentId = resultB.id;
+                    chrome.bookmarks.create(folderC, function(resultC) {
+                        bookmarkA.parentId = resultC.id;
+
+                        chrome.bookmarks.create(bookmarkA, function() {
+                            crossbrows.cullTree(resultC.id, 5).done(function() {
+                                chrome.bookmarks.getChildren(resultB.id, function(result) {
+                                    equal(result.length, 1, "The child folder was culled");
+                                    strictEqual(result[0].title, title, "The child was moved before the folder was culled" );
+                                    done1();
+                                });
+                                chrome.bookmarks.removeTree(resultA.id, $.noop);
+                            }).fail(function() {
+                                ok(false);
+                            });
+                        });
+                    });
+                });
+            });
+        });
+
         // Move a bookmark (folder) via a promise
         /*
         QUnit.test("Chrome API - move a folder and return a promise", function(assert){

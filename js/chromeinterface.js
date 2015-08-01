@@ -72,7 +72,7 @@ define(["jquery"], function($){
             return dfd.promise();
         },
 
-        getBookmark: function(id) {
+         getBookmark: function(id) {
             var dfd = $.Deferred();
 
             chrome.bookmarks.get(id, function(result) {
@@ -89,14 +89,14 @@ define(["jquery"], function($){
             return dfd.promise();
         },
 
-        /**
-         * Get all children bookmarks at id
-         * @param {string} id The id of parent
-         * @param {function} callback The callback to run with the child bookmarks
-         */
-        getBookmarkChildren: function (id, callback) {
+        getBookmarkChildren: function (id) {
+            var dfd = $.Deferred();
 
-            chrome.bookmarks.getChildren(id, callback);
+            chrome.bookmarks.getChildren(id, function(results) {
+                dfd.resolve(results);
+            });
+
+            return dfd.promise();
         },
 
         /**
