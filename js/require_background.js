@@ -2,28 +2,23 @@ requirejs.config({
     baseUrl: 'js',
 
     paths: {
-        app: '../app',
+        app: '..',
 
-        jquery: [
-            'jquery' //local
-        ],
+        lib: 'lib',
 
         sortapi: '../bookmarksorter'
     },
 
     shim: {
-        'underscore': {
-            exports: ['_']
-        },
-
-        'jquery.total-storage' : ['jquery'],
-
-        'jquery.whensync' : ['jquery'],
-
-        'purl' : ['jquery']
-
+        'lib/jquery.total-storage' : ['jquery'],
+        'lib/jquery.mjs.nestedSortable'  : ['jquery-ui'],
+        'lib/underscore.string' : ['underscore'],
+        'autosort' : {
+            exports: 'AutoSort'
+        }
     }
-
 });
 
-require(['sortapi', 'jquery', 'domReady'], function(SmartBookmarkSorter, $) {});
+require(['autosort', 'jquery'], function(autosort) {
+    this.AutoSort = autosort;
+});

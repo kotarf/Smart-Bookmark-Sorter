@@ -15,7 +15,7 @@ requirejs.config({
         'lib/jquery.browser' : ['jquery'],
         'lib/jquery.hotkeys' : ['jquery'],
         'lib/jquery.whensync' : ['jquery'],
-        'lib/underscore.string.js' : ['underscore'],
+        'lib/underscore.string' : ['underscore'],
         'lib/Queue.src' : []
     }
 

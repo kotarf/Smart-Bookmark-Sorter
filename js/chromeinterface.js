@@ -51,7 +51,7 @@ define(["jquery"], function($){
             return dfd.promise();
         },
 
-        findBookmark: function(title, url) {
+        findBookmark: function(title, url, parentId) {
             var dfd = $.Deferred(),
                 queryObj = {
                     title: title,
@@ -59,13 +59,23 @@ define(["jquery"], function($){
                 };
 
             chrome.bookmarks.search(queryObj, function(results) {
+
                 if(results === undefined || results.length === 0)
                 {
-                    dfd.reject(results);
+                    dfd.reject();
                 }
                 else
                 {
-                    dfd.resolve(results);
+                    var bookmark =_.filter(results, function(element) {
+                        return element.parentId == parentId;
+                    })[0];
+
+                    if(bookmark) {
+                        dfd.resolve(bookmark);
+                    }
+                    else {
+                        dfd.reject();
+                    }
                 }
             });
 
@@ -180,6 +190,13 @@ define(["jquery"], function($){
             chrome.bookmarks.onCreated.addListener(callback);
         },
 
+        /**
+         * Attach bookmark delete event
+         * @param {function} callback The listener to attach
+         */
+        chromeBookmarkOnRemoved: function (callback) {
+            chrome.bookmarks.onRemoved.addListener(callback);
+        },
         /**
          * Detach bookmark create event
          * @param {function} callback The listener to detach
@@ -296,6 +313,19 @@ define(["jquery"], function($){
          */
         chromeOnImportEnd: function (callback) {
             chrome.bookmarks.onImportEnded.addListener(callback);
+        },
+
+        /**
+         * Get background page
+         */
+        chromeGetBackgroundPage: function () {
+            var dfd = $.Deferred();
+
+            chrome.runtime.getBackgroundPage(function(window) {
+                dfd.resolve(window);
+            });
+
+            return dfd.promise();
         }
     };
 });

@@ -2,8 +2,6 @@
  * Created by kotarf on 8/24/14.
  */
 define(["jquery", "lib/jquery.total-storage", "lib/jquery.whensync"], function($) {
-    /******* JQUERY HELPERS*******/
-
     return {
         /**
          * Make a REST request with JQuery. Wraps around JQuery
@@ -14,17 +12,6 @@ define(["jquery", "lib/jquery.total-storage", "lib/jquery.whensync"], function($
          */
         jqueryRESTx: function (requestURL, data, callback, dataType) {
             return $.get(requestURL, data, callback, dataType);
-        },
-
-        /**
-         * Make a REST request with JQuery. Wraps around JQuery
-         * @param {string} requestURL The endpoint request URL
-         * @param {object} data The data to send
-         * @param {function} callback The callback to run after request completes
-         * @param {string} dataType The data type to return back
-         */
-        jqueryREST: function (requestURL, data, callback, dataType) {
-            jQuery.get(requestURL, data, callback, dataType);
         },
 
         /**

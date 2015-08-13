@@ -81,34 +81,33 @@
 		<div id="dialog_manual_settings" title="Manual sort settings">
 			<input hidden autofocus>
 			<p>These advanced settings will take effect immediately for manual sorting.</p>
+			<label for="autocomplete_archives">Select an output folder, which will be created if it does not exist: </label>
+			<input id="autocomplete_archives">
             <p>
                 <label for="spinner_settings_taxonomylevels">The maximum number of nested taxonomy levels:</label>
                 <input id="spinner_settings_taxonomylevels" name="value">
             </p>
             <div id="container_settings_cull" style="width:500px">
 				<input type="checkbox" id="check_cull"><label for="check_cull">Cull bookmarks</label>
-				<label for="spinner_cull_num"># bookmarks</label>
+				<label for="spinner_cull_num">if less than</label>
 				<input id="spinner_cull_num">
 			</div>
+			<label for="radio_sortAction">Create copies or move when sorting:</label>
 			<div id="radio_sortAction">
 				<input type="radio" id="radio_create" name="radio1"><label for="radio_create">Create</label>
 				<input type="radio" id="radio_move" name="radio1"><label for="radio_move">Move</label>
 			</div>
-            <div id="radio_sortMode">
-                <input type="radio" id="radio_taxonomy" name="radio2"><label for="radio_taxonomy">Taxonomy</label>
-                <input type="radio" id="radio_category" name="radio2"><label for="radio_category">Category/Title</label>
-            </div>
 		</div>
 	</div>
     <div id="tabs-4">
 		<p>Configure automatic sort, which will maintain order in your bookmarks while active. The three options below allow you to customize automatic sort.</p>
 		<div id="container2" style="width:500px">
-			<input type="checkbox" id="button_oncreate"/>
-			<label for="button_oncreate" title="Will sort bookmarks as they are created.">Sort on Bookmark Event</label>
-			<input type="checkbox" id="button_interval"/>
-			<label for="button_interval" title="Will sort older bookmarks on a timed interval.">Sort on Timed Interval</label>
-			<label for="button_prioritize" title="Will move accessed bookmarks to the top of the list.">Prioritize Bookmarks</label>
+            <input type="checkbox" id="button_interval"/>
 			<input type="checkbox" id="button_prioritize"/>
+			<input type="checkbox" id="button_cull"/>
+			<label for="button_interval" title="Will sort or destroy older bookmarks on a timed interval.">Sort</label>
+			<label for="button_prioritize" title="Will move recently added bookmarks to the top of the tree on a timed interval.">Prioritize</label>
+			<label for="button_cull" title="Will cull near-empty folders on a timed interval.">Cull</label>
 		</div>
 		<p>Enable and disable automatic sorting below.</p>
 		<input type="checkbox" id="button_autosort"/>
@@ -116,7 +115,7 @@
     </div>
 	<div id="tabs-5">
 		<div id="container3">
-			<p>Version 0.0.1.3</p>		
+			<p>Version 2.0.0</p>
 			<p>Powered by</p>		
 			<a href="http://alchemyapi.com" target="_blank"><img src="images/alchemyAPI.jpg" alt="AlchemyAPI Logo"></a>
 			<a href="http://jqueryui.com" target="_blank"><img src="images/jquery_ui_logo.png" alt="JQuery UI Logo"></a>

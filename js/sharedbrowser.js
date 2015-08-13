@@ -33,30 +33,6 @@ define(['jquery', 'chromeinterface', 'config', 'alchemy', 'config', 'jqueryhelpe
        },
 
        /**
-        * Creates a folder by the category of the given URL, making an API request to get data and browser requests to find or create a folder
-        * Makes an Alchemy API request to check the category
-        * @param {string} url The url to lookup.
-        * @param {string} parentId The parentId to create the folder in.
-        */
-       createFolderByCategory : function (url, parentId)
-       {
-           var dfd = $.Deferred(),
-               me = this;
-
-           alchemy.alchemyCategoryLookupEx(url).done(function(result, data) {
-               me.createFolderIfNotExists(result, parentId).done(function(id, parentId) {
-                   dfd.resolve(id, parentId);
-               }).fail(function() {
-                   dfd.fail(undefined, parentid, data);
-               });
-           }).fail(function(result, data) {
-               dfd.fail(undefined, parentid, data);
-           });
-
-           return dfd.promise();
-       },
-
-       /**
         * Duplicates the folder structure of AlchemyAPI's returned taxonomy (only creating folders if they exist)
         * @param {string} url The url to lookup.
         * @param {string} parentId The parentId to create the first folder in
@@ -78,7 +54,6 @@ define(['jquery', 'chromeinterface', 'config', 'alchemy', 'config', 'jqueryhelpe
 
                if(maxLevels) {
                    taxonomy = taxonomy.splice(0, maxLevels);
-                   console.log("Spliced taxonomy results off: ", taxonomy, " based on", maxLevels);
                }
 
                var defFunctors = _.map(taxonomy, function (element) {
@@ -157,7 +132,7 @@ define(['jquery', 'chromeinterface', 'config', 'alchemy', 'config', 'jqueryhelpe
 
             if($.browser.webkit ) {
                 chromex.moveBookmark(id, destination).always(function(result) {
-                    dfd.resolve(result.id, result.parentId);
+                    dfd.resolve(result);
                 });
             }
 
@@ -175,7 +150,7 @@ define(['jquery', 'chromeinterface', 'config', 'alchemy', 'config', 'jqueryhelpe
                }
 
                chromex.createBookmark(bookmark).always(function(result) {
-                   dfd.resolve(result.id, result.parentId);
+                   dfd.resolve(result);
                });
            }
 
@@ -188,26 +163,35 @@ define(['jquery', 'chromeinterface', 'config', 'alchemy', 'config', 'jqueryhelpe
                parentId = parentId || config.rootBookmarksId;
 
            if($.browser.webkit) {
-               chromex.findBookmark(title, url).done(function(results) {
-                   var bookmark =_.filter(results, function(element) {
-                       return element.parentId == parentId;
-                   })[0];
-                   if(bookmark) {
-                       dfd.resolve(bookmark.id, parentId);
-                   }
-                   else {
-                       me.createBookmark(parentId, title, url).done(function(result) {
-                           dfd.resolve(result.id, parentId);
-                       });
-                   }
+               chromex.findBookmark(title, url, parentId).done(function(result) {
+                   dfd.resolve(result.id, result.parentId);
                }).fail(function() {
                    me.createBookmark(parentId, title, url).done(function(result) {
-                       dfd.resolve(result.id, parentId);
+                       dfd.resolve(result.id, result.parentId);
                    });
                });
            }
 
            return dfd.promise();
+       },
+
+       moveBookmarkIfNotExists: function(item, destination) {
+           var dfd = $.Deferred(),
+               me = this;
+
+           if($.browser.webkit) {
+               chromex.findBookmark(item.title, item.url, destination).done(function(id, parentId) {
+                   me.removeBookmark(item.id).always(function() {
+                       dfd.resolve(id, parentId);
+                   });
+               }).fail(function() {
+                   me.moveBookmark(item.id, destination).done(function(result) {
+                       dfd.resolve(result.id, result.parentId);
+                   });
+               });
+
+               return dfd.promise();
+           }
        },
 
         bookmarksSubTree: function(id) {
@@ -243,7 +227,7 @@ define(['jquery', 'chromeinterface', 'config', 'alchemy', 'config', 'jqueryhelpe
        bookmarksTree: function() {
            // if chrome
            if ( $.browser.webkit ) {
-               return chromex.chromeGetTree().then();
+               return chromex.chromeGetTree().promise();
            }
 
            // if firefox
@@ -275,7 +259,7 @@ define(['jquery', 'chromeinterface', 'config', 'alchemy', 'config', 'jqueryhelpe
                uri = 'url(chrome://favicon/' + item.url + ')';
 
            // If bookmark
-           var li = $('<li/>').attr("id", item.id).append(
+           var li = $('<li/>').attr({id: item.id, parentId: item.parentId}).append(
                $('<div/>', {
                    text : item.title,
                    css: {
@@ -472,7 +456,7 @@ define(['jquery', 'chromeinterface', 'config', 'alchemy', 'config', 'jqueryhelpe
            // Clear all
            $(document).bind('keydown', 'ctrl+space', function() {
                var sortable = $(".sortable"),
-                   descendants = sortable.find("li:not([parentid]) > div");
+                   descendants = sortable.find("li:not([folder]) > div");
 
                if(descendants.length != 0) {
                    descendants.each(function(index, element) {
@@ -495,9 +479,9 @@ define(['jquery', 'chromeinterface', 'config', 'alchemy', 'config', 'jqueryhelpe
 
            var bookmarks = selected.map(function (index, domElement) {
                var divElement = $(domElement),
-                   liElement = $(domElement).closest("li");
+                   liElement = divElement.closest("li");
 
-               return { id: liElement.attr("id"), url: divElement.attr("url"), title: divElement.text() }
+               return { id: liElement.attr("id"), url: divElement.attr("url"), title: divElement.text(), parentId: liElement.attr("parentId") }
            });
 
            return bookmarks;
@@ -546,9 +530,19 @@ define(['jquery', 'chromeinterface', 'config', 'alchemy', 'config', 'jqueryhelpe
                parentli = $(selectorParent),
                parentol = parentli.children("ol");
 
-           $(selectorChild).toggleClass("borderhighlight", false);
-
            $(selectorChild).detach().appendTo(parentol);
+
+           $(selectorChild).toggleClass("borderhighlight", false);
+       },
+
+       /**
+        * Delete (DOM operation) the associated bookmark based on the api update
+        * @param {string} id The id of the bookmark that was deleted
+        */
+       onRemoved: function(id) {
+           var selectorChild = "#" + id;
+
+           $(selectorChild).detach();
        },
 
        attachOnCreatedHandlers: function() {
@@ -578,6 +572,18 @@ define(['jquery', 'chromeinterface', 'config', 'alchemy', 'config', 'jqueryhelpe
            }
        },
 
+       attachOnRemovedHandlers: function() {
+           // if chrome
+           if ( $.browser.webkit ) {
+               chromex.chromeBookmarkOnRemoved(this.onRemoved);
+           }
+
+           // if firefox
+           if ( $.browser.mozilla ) {
+               // Must convert firefox output to chrome style
+
+           }       },
+
        rootBookmarks: function() {
            if ($.browser.webkit) {
                return ["Bookmarks bar", "Other Bookmarks", "Mobile bookmarks"];
@@ -596,18 +602,28 @@ define(['jquery', 'chromeinterface', 'config', 'alchemy', 'config', 'jqueryhelpe
          }
        },
 
+       isFolder: function(bookmark) {
+           if($.browser.webkit) {
+               if(!bookmark.url) {
+                   return true;
+               }
+
+               return false;
+           }
+       },
+
        cullFolder: function(bookmark, minimum) {
            var dfd = $.Deferred(),
                id = bookmark.id,
                parentId = bookmark.parentId,
                me = this;
 
-           // If folder has less than minimum bookmarks, move to parent and
            if ( $.browser.webkit ) {
                me.getChildren(id).done(function(results) {
                   var children = results;
 
-                  if(_.isUndefined(children) || children.length < minimum)  {
+                   // If folder has less than minimum bookmarks, move to parent and delete
+                   if(_.isUndefined(children) || children.length < minimum)  {
                       var promises = [];
 
                       _.each(children, function(element) {
@@ -618,6 +634,7 @@ define(['jquery', 'chromeinterface', 'config', 'alchemy', 'config', 'jqueryhelpe
 
                       $.when(promises).then(function() {
                          me.removeBookmark(id).always(function() {
+                             console.log("Removing id", id);
                              dfd.resolve();
                          });
                       });
@@ -633,49 +650,50 @@ define(['jquery', 'chromeinterface', 'config', 'alchemy', 'config', 'jqueryhelpe
        cullTree: function(id, minimum) {
            var me = this,
                queue = new Queue(),
-               stack = new Array(),
+               folders = new Array(),
                tree = this.bookmarksSubTree(id),
-               defFunctors = [],
+               functs = [],
                dfd = $.Deferred();
 
            tree.done(function(results) {
-               _.each(results, function(element) {
-                   if(!element.url) {
-                       stack.push(element);
-                       queue.enqueue(element);
-                   }
-               });
 
+               console.log("Cull tree result", results);
+               queue.enqueue(results[0]);
+
+               // Iterate through tree w/ queue. Add children folders to stack.
                while(!queue.isEmpty()) {
                    var bookmark = queue.dequeue(),
                        children = bookmark.children;
 
                    if(children) {
                        _.each(children, function(child) {
-
-                           if(!child.url) {
+                           if(me.isFolder(child)) {
+                               console.log("pushng 2 ", child);
+                               folders.push(child);
                                queue.enqueue(child);
-                               stack.push(child);
                            }
                        });
                    }
                }
 
-               while(!_.isEmpty(stack)) {
-                   var folder = stack.pop();
-                   defFunctors.push(function () {
-                       var deferred = arguments[0];
+               // Create function objects to cull folders in order (bottom up)
+               while(!_.isEmpty(folders)) {
+                   var element = folders.pop();
 
-                       // Resolve the deferred in the future.
-                       me.cullFolder(folder, minimum).done(function() {
-                           deferred.resolve();
-                       }).fail(function() {
-                           deferred.fail();
-                       });
-                   });
+                   functs.push(
+                       function(folder) {
+                           return function(deferred) {
+                               me.cullFolder(folder, minimum).done(function() {
+                                   deferred.resolve();
+                               }).fail(function() {
+                                   deferred.fail();
+                               });
+                           }
+                       } (element)
+                   );
                }
 
-               var asyncChain = jhelpers.jQueryWhenSync(me, defFunctors);
+               var asyncChain = jhelpers.jQueryWhenSync(me, functs);
 
                asyncChain.done(function() {
                    dfd.resolve();
@@ -687,6 +705,40 @@ define(['jquery', 'chromeinterface', 'config', 'alchemy', 'config', 'jqueryhelpe
            });
 
            return dfd.promise();
+       },
+
+       cullArchives: function() {
+           /// TODO storage.getArchivesFolder
+           var archive = config.archivesFolder;
+
+       },
+
+       /**
+        * Removes all empty folders in Other Bookmarks
+        */
+       removeEmptyFolders : function()
+       {
+           var me = this;
+           me.getOtherBookmarks(function(result) {
+               chromex.searchFolders(result.id, function(bookmark){return bookmark.url === undefined;}, function(ret) {
+                   // Loop through
+                   me.forEach(ret, function(bookmark) {
+                       // If I'm empty, remove me
+                       me.getBookmarkChildren(bookmark.id, function(results) {
+                           if (results.length == 0) {
+                               chromex.removeBookmark(bookmark.id, function(){});
+                           }
+                       });
+                   });
+               });
+
+           });
+       },
+
+       getBackgroundService: function() {
+           if($.browser.webkit) {
+               return chromex.chromeGetBackgroundPage();
+           }
        }
     }
 });

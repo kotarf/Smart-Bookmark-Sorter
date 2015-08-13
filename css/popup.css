@@ -131,6 +131,10 @@
 	}
 
 	/* settings */
+	#autocomplete_archives {
+		margin-top: 2%;
+	}
+
 	#container_settings_cull {
 		padding-bottom: 5%;
 	}

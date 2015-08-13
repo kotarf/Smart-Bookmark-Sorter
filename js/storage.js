@@ -244,5 +244,21 @@ define(['jqueryhelpers', 'config'], function(jhelpers, config) {
         getSortAction: function () {
             return jhelpers.jQueryStorageGetValue(config.sortAction);
         },
+
+        getArchivesName: function() {
+            return jhelpers.jQueryStorageGetValue(config.archivesName) || config.archivesFolder;
+        },
+
+        setArchivesName: function(value) {
+            jhelpers.jQueryStorageSetValue(config.archivesName, value);
+        },
+
+        setAutosortCounter: function(value) {
+            jhelpers.jQueryStorageSetValue(config.indexCounter, value);
+        },
+
+        getAutosortCounter: function() {
+            return jhelpers.jQueryStorageGetValue(config.indexCounter);
+        }
     };
 });

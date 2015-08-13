@@ -226,10 +226,12 @@ define(["jquery", "underscore", "sortapi", "alchemy", "storage", "jqueryhelpers"
             });
         });
 
+        /*
         QUnit.test("Convert a tree to divs", function(assert) {
             ok(0);
 
         });
+        */
 
         QUnit.test("whenSync plugin test", function(assert) {
             var done1 = assert.async();
@@ -299,18 +301,23 @@ define(["jquery", "underscore", "sortapi", "alchemy", "storage", "jqueryhelpers"
                 bookmark = {
                     title: "GE Careers",
                     url: "http://www.ge.com/careers"
-
+                },
+                options = {
+                    sortAction: false
                 };
 
             chrome.bookmarks.create(bookmark, function(result) {
-                var promise = SmartBookmarkSorter.sortBookmarkEx(result);
+                var promise = SmartBookmarkSorter.sortBookmarkEx(result, config.rootBookmarksId, options);
 
-                promise.always(function(id, parentId) {
-                    ok(id);
-                    ok(parentId);
+                promise.done(function(id, parentId) {
+                    ok(id, "An id of the result is returned");
+                    ok(parentId, "Destination of result is returned");
                     chrome.bookmarks.removeTree(parentId, $.noop);
                     done1();
+                }).fail(function() {
+                    ok(false, "Failed to sort");
                 });
+
             });
 
         });
@@ -328,16 +335,23 @@ define(["jquery", "underscore", "sortapi", "alchemy", "storage", "jqueryhelpers"
                 bookmarkC = {
                     title: "Tradeweb Careers",
                     url: "http://www.tradeweb.com/careers/"
-                }
+                },
+                options = {
+                    sortAction: false,
+                    archivesFolder: "unittests",
+                    cull: false
+                };
 
             chrome.bookmarks.create(bookmarkA, function(resultA) {
                 chrome.bookmarks.create(bookmarkB, function(resultB) {
                     chrome.bookmarks.create(bookmarkC, function(resultC) {
-                        SmartBookmarkSorter.sortBookmarksEx([resultA, resultB, resultC]).always(function(results) {
-                            ok(results);
-                            strictEqual(results.length, 3,"Three bookmarks were sorted");
-                            equal(results[0].parentId, results[1].parentId, "Two of the three were sorted into the same parent folder")
-                            chrome.bookmarks.removeTree(results[0].parentId, $.noop);
+                        SmartBookmarkSorter.sortBookmarksEx([resultA, resultB, resultC], config.rootBookmarksId, options).always(function(archivesId, results) {
+                            console.log(arguments);
+                            var sorted = results;
+                            ok(sorted);
+                            strictEqual(sorted.length, 3,"Three bookmarks were sorted");
+                            equal(sorted[0].parentId, sorted[1].parentId, "Two of the three were sorted into the same parent folder")
+                            chrome.bookmarks.removeTree(archivesId, $.noop);
                             done1();
                         });
                     });
@@ -345,7 +359,7 @@ define(["jquery", "underscore", "sortapi", "alchemy", "storage", "jqueryhelpers"
             });
         });
 
-        QUnit.test("Cull a folder", function(assert) {
+        QUnit.test("Cull a tree", function(assert) {
            var done1 = assert.async(),
                title = "Tradeweb Careers",
                 folderA = {
@@ -372,8 +386,8 @@ define(["jquery", "underscore", "sortapi", "alchemy", "storage", "jqueryhelpers"
                         bookmarkA.parentId = resultC.id;
 
                         chrome.bookmarks.create(bookmarkA, function() {
-                            crossbrows.cullTree(resultC.id, 5).done(function() {
-                                chrome.bookmarks.getChildren(resultB.id, function(result) {
+                            crossbrows.cullTree(resultA.id, 5).done(function() {
+                                chrome.bookmarks.getChildren(resultA.id, function(result) {
                                     equal(result.length, 1, "The child folder was culled");
                                     strictEqual(result[0].title, title, "The child was moved before the folder was culled" );
                                     done1();

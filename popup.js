@@ -1,5 +1,5 @@
-define(["jquery", "sortapi", "storage", "alchemy", "sharedbrowser", "jquery-ui.min",
-    "lib/jquery.mjs.nestedSortable", "lib/jquery.total-storage", "lib/jquery.hotkeys"], function ($, sortapi, storage, alchemy, shared) {
+define(["jquery", "sortapi", "storage", "autosort", "alchemy", "sharedbrowser", "lib/underscore.string", "jquery-ui.min",
+    "lib/jquery.mjs.nestedSortable", "lib/jquery.total-storage", "lib/jquery.hotkeys", ], function ($, sortapi, storage, autosort, alchemy, shared, s) {
     $(document).tooltip();
 
     $("#tabs").tabs({heightStyle: "content", hide: 'fade', show: 'fade'});
@@ -23,6 +23,7 @@ define(["jquery", "sortapi", "storage", "alchemy", "sharedbrowser", "jquery-ui.m
     // Attach signal handlers to browser API
     shared.attachOnCreatedHandlers();
     shared.attachOnMovedHandlers();
+    shared.attachOnRemovedHandlers();
 
     if (key === null || key === undefined) {
         $('#tabs').tabs('disable', 1); // disable second tab
@@ -66,7 +67,6 @@ define(["jquery", "sortapi", "storage", "alchemy", "sharedbrowser", "jquery-ui.m
 
     $("#button_key").button().click(function () {
         key = $("#autocomplete_apikey").val();
-        console.log("key is ", key);
         // Test the API key to see if it is valid
         var promise = alchemy.alchemyKeyTest(key);
 
@@ -132,6 +132,12 @@ define(["jquery", "sortapi", "storage", "alchemy", "sharedbrowser", "jquery-ui.m
         if (!storage.getIsOnManualSorting()) {
             // Sort a sample of bookmarks
             //sortapi.sortSample();
+
+            var rootIndex = shared.selectedIndexModifier(selectMenu.prop("selectedIndex"));
+            shared.cullTree("2113", 5).always(function() {
+                console.log("Done culling");
+            });
+
         }
         else {
             console.log("!!!!Sort is in progress");
@@ -152,6 +158,20 @@ define(["jquery", "sortapi", "storage", "alchemy", "sharedbrowser", "jquery-ui.m
     }).click(function() {
         $("#dialog_manual_settings").dialog("open");
     });
+
+    $("#autocomplete_archives").autocomplete({
+        change: function(event) {
+            var selectedObj = $(event.target)[0],
+                text = selectedObj.value,
+                sanitized = s.escapeHTML(s.trim(text));
+
+            if(!s.isBlank(sanitized)) {
+                storage.setArchivesName(sanitized);
+            }
+            return false;
+        },
+        source: []
+    }).val(storage.getArchivesName());
 
     $( "#spinner_settings_taxonomylevels" ).spinner({
         min: 1,
@@ -180,8 +200,6 @@ define(["jquery", "sortapi", "storage", "alchemy", "sharedbrowser", "jquery-ui.m
 
     $( "#radio_sortAction" ).buttonset();
 
-    $( "#radio_sortMode" ).buttonset();
-
     $('#radio_create').on("change", function(){
         storage.setSortAction(true);
     });
@@ -200,17 +218,11 @@ define(["jquery", "sortapi", "storage", "alchemy", "sharedbrowser", "jquery-ui.m
 
     $( "#radio_sortAction" ).buttonset('refresh');
 
-    $('#radio_category').on("change", function(){
-
-    });
-    $('#radio_taxonomy').on("change", function(){
-
-    });
-
     $("#dialog_manual_settings").dialog({
         height: 300,
         width: 400,
-        modal: true,
+        resizable: false,
+        draggable: false,
         autoOpen: false
     });
 
@@ -224,14 +236,18 @@ define(["jquery", "sortapi", "storage", "alchemy", "sharedbrowser", "jquery-ui.m
         buttons: {
             "Sort all bookmarks": function () {
                 // Check if a sort is in progress
-                if (!storage.getIsOnManualSorting()) {
+                if (true || !storage.getIsOnManualSorting()) {
                     // Sort selected bookmarks
                     var selectedBookmarks = shared.selectedBookmarks(bookmarks);
 
                     // Output directory
                     var rootIndex = shared.selectedIndexModifier(selectMenu.prop("selectedIndex")),
+                        archivesFolder = storage.getArchivesName(),
                         sortAction = storage.getSortAction(),
-                        maxLevels = storage.getMaxTaxonomyLevels();
+                        maxLevels = storage.getMaxTaxonomyLevels(),
+                        cull = storage.getIsOnCullBookmarks();
+
+                    var options = {archivesFolder: archivesFolder, sortAction: sortAction, maxLevels: maxLevels, cull:cull};
 
                     // Lock
                     $("#lock_icon").toggleClass("fa-unlock", false);
@@ -243,7 +259,7 @@ define(["jquery", "sortapi", "storage", "alchemy", "sharedbrowser", "jquery-ui.m
                     $("#progressbar_sorting").progressbar("option", "max", selectedBookmarks.length);
 
                     // Sort selected bookmarks via promise
-                    sortapi.sortBookmarksEx(selectedBookmarks, rootIndex, sortAction, maxLevels).always(function() {
+                    var promise = sortapi.sortBookmarksEx(selectedBookmarks, rootIndex, options).always(function() {
                         // Unlock
                         $("#lock_icon").toggleClass("fa-lock", false);
                         $("#lock_icon").toggleClass("fa-unlock", true);
@@ -274,19 +290,6 @@ define(["jquery", "sortapi", "storage", "alchemy", "sharedbrowser", "jquery-ui.m
 
     // Get autosort settings
 
-
-    $("#button_oncreate").button().click(function () {
-        var isChecked = $("#button_oncreate").is(':checked');
-        if (isChecked) {
-            // Set the on create flag to true
-            storage.setAutoOnCreate(true);
-        }
-        else {
-            // Set the on create flag to false
-            storage.setAutoOnCreate(false);
-        }
-    });
-
     $("#button_interval").button().click(function () {
         var isChecked = $("#button_interval").is(':checked');
         if (isChecked) {
@@ -311,16 +314,25 @@ define(["jquery", "sortapi", "storage", "alchemy", "sharedbrowser", "jquery-ui.m
         }
     });
 
+    $("#button_cull").button().click(function () {
+        var isChecked = $("#button_cull").is(':checked');
+        if (isChecked) {
+            // Set the on create flag to true
+            storage.setAutoOnCreate(true);
+        }
+        else {
+            // Set the on create flag to false
+            storage.setAutoOnCreate(false);
+        }
+    });
+
     // Restore states for autosort buttons
     var isOnCreate = storage.getAutoOnCreate(),
         isOnInterval = storage.getAutoInterval(),
         isPrioritize = storage.getAutoPrioritize(),
         isAutoSort = storage.getAutoOn();
 
-    if (isOnCreate) {
-        $("#button_oncreate").attr("checked", "checked");
-        $("#button_oncreate").button("refresh");
-    }
+
     if (isOnInterval) {
         $("#button_interval").attr("checked", "checked");
         $("#button_interval").button("refresh");
@@ -329,17 +341,27 @@ define(["jquery", "sortapi", "storage", "alchemy", "sharedbrowser", "jquery-ui.m
         $("#button_prioritize").attr("checked", "checked");
         $("#button_prioritize").button("refresh");
     }
+    if (isOnCreate) {
+        $("#button_cull").attr("checked", "checked");
+        $("#button_cull").button("refresh");
+    }
 
     $("#button_autosort").button().click(function () {
-        var isChecked = $("#button_autosort").is(':checked');
+        var isChecked = $("#button_autosort").is(':checked'),
+            sort = $("#button_interval").is(':checked'),
+            prioritize = $("#button_prioritize").is(':checked'),
+            cull = $("#button_cull").is(':checked');
+
         if (isChecked) {
             // Enable automatic sort
-            storage.enableAutomaticSort();
-            storage.setAutoOn(true);
+            shared.getBackgroundService().done(function(background) {
+                background.AutoSort.enableAutomaticSort(sort, prioritize, cull);
+                storage.setAutoOn(true);
+            });
         }
         else {
             // Disable automatic sort
-            storage.disableAutomaticSort();
+            //autosort.disableAutomaticSort();
             storage.setAutoOn(false);
         }
     });

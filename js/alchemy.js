@@ -179,12 +179,14 @@ define(["underscore", "jqueryhelpers", "storage", "config"], function(_, jhelper
         alchemyTaxonomyObject : function()
         {
             var accept = function(data) {
+                console.log("Taxonomy raw data", data);
+
                 if(!data.taxonomy || !data.taxonomy[0]) {
                     console.log("No taxonomy in data", data);
                     return false;
                 }
                 else {
-                    return data.taxonomy[0].score > config.taxonomyErrorScore;
+                    return data.taxonomy[0].confident === "no" ? false : true;
                 }
             };
             var me = this;
@@ -204,7 +206,6 @@ define(["underscore", "jqueryhelpers", "storage", "config"], function(_, jhelper
             return taxonomyObject;
         },
 
-        //TODO figure out how to use template method to have category, title, and concept lookups share code. This is just about figured out!
         alchemyCategoryLookupEx : function(url)
         {
             this.alchemyCategoryInstance = this.alchemyCategoryInstance || this.alchemyCategoryObject();
@@ -231,55 +232,6 @@ define(["underscore", "jqueryhelpers", "storage", "config"], function(_, jhelper
             }
 
             return cachedData;
-        },
-
-        /**
-         * Store the title (value) by the url (key)
-         * This could be refactored along with with half of my code
-         * @param {object} cachedData The cachedData object that was retrieved
-         * @param {string} url The url to store by
-         * @param {string} title The title to store
-         */
-        cacheTitle : function(cachedData, url, title) {
-            // Category data may already exist
-            var category = undefined,
-                me = this;
-
-            if(_.isNull(cachedData))
-            {
-                cachedData = jhelpers.jQueryStorageGetValue(url);
-            }
-
-            if(cachedData !== null) {
-                category = cachedData.category;
-            }
-
-            // Cache the title in local storage
-            jhelpers.jQueryStorageSetValue(url, {title: title, category: category});
-        },
-
-        /**
-         * Store the category (value) by the url (key)
-         * @param {object} cachedData The cachedData object that was retrieved
-         * @param {string} url The url to store by
-         * @param {string} category The category to store
-         */
-        cacheCategory : function(cachedData, url, category) {
-            // Title data may already exist
-            var title = undefined,
-                me = this;
-
-            if(_.isNull(cachedData))
-            {
-                cachedData = jhelpers.jQueryStorageGetValue(url);
-            }
-
-            if(cachedData !== null) {
-                title = cachedData.title;
-            }
-
-            // Cache the category in local storage
-            jhelpers.jQueryStorageSetValue(url, {title: title, category: category});
         }
     };
 });
