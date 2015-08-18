@@ -8,15 +8,7 @@ define(["underscore", "jqueryhelpers", "storage", "config"], function(_, jhelper
 
         /**
          * Make an Alchemy API key test that runs callbackA if the key is valid, and runs callbackB if the key is not valid. Assumes google.com is operational :)
-         * This code is particularly bad and needs to be replaced with using the regular functions below
          * @param {string} apiKey The apikey to make the request with
-         * @param {function} callbackA The function to run if the test succeeds
-         * @param {function} callbackB The function to run if the test fails
-         * @param {array} argsA The arguments to the first callback
-         * @param {array} argsB The arguments to the second callback
-         * @param {object} scope The scope of the object to run the callbacks in
-         * @config {string} [outputMode] Output mode for the request (like json)
-         * @config {string} [requestCategoryURL] Endpoint for Alchemy category requests
          */
         alchemyKeyTest : function (apiKey) {
             //Create a local data object for the API request
@@ -51,17 +43,6 @@ define(["underscore", "jqueryhelpers", "storage", "config"], function(_, jhelper
             var requestURL = config.requestCategoryURL;
 
             // API request for getting the category of a URL
-            return this.alchemyRequest(requestURL, url);
-        },
-
-        /**
-         * Make an Alchemy API title request that runs the callback when complete
-         * @param {string} url The url to extract title
-         */
-        alchemyTitle : function (url) {
-            var requestURL = config.requestTitleURL;
-
-            // API request for getting the title of a URL
             return this.alchemyRequest(requestURL, url);
         },
 
@@ -186,7 +167,7 @@ define(["underscore", "jqueryhelpers", "storage", "config"], function(_, jhelper
                     return false;
                 }
                 else {
-                    return data.taxonomy[0].confident === "no" ? false : true;
+                    return data.taxonomy[0].confident === "no" || data.taxonomy[0].score < config.taxonomyErrorScore ? false : true;
                 }
             };
             var me = this;

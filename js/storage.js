@@ -5,24 +5,32 @@ define(['underscore', 'jqueryhelpers', 'config'], function(_, jhelpers, config) 
     // Add new local storage variables here
     var tokens = [
         {name: 'ApiKey'},
-        {name: 'AutoOnCreate'},
-        {name: 'AutoInterval'},
-        {name: 'AutoPrioritize'},
-        {name: 'AutoOn'},
-        {name: 'OldBookmarkDays', def: config.oldBookmarkDaysDefault},
         {name: 'IsOnManualSorting'},
         {name: 'IsOnCreateSorting'},
         {name: 'IsOnAlarmSorting'},
+        {name: 'OutputIndex', def: config.otherBookmarksIndex},
         {name: 'MaxTaxonomyLevels', def: config.defaultTaxonomyLevels},
         {name: 'IsOnCullBookmarks'},
         {name: 'CullNumber', def: config.defaultCullNumber},
         {name: 'SortAction'},
         {name: 'ArchivesName', def: config.archivesFolder},
-        {name: 'AutosortCounter'},
+        {name: 'AutoOnCreate'},
+        {name: 'AutoInterval'},
+        {name: 'AutoPrioritize'},
+        {name: 'AutoOn'},
+        {name: 'AutosortCounterOther', def: 0},
+        {name: 'AutosortCounterBar', def: 0},
+        {name: 'AutosortCounterMobile', def: 0},
+        {name: 'AutosortOtherBookmarks', def: true},
+        {name: 'AutosortBookmarksBar'},
+        {name: 'AutosortMobileBookmarks'},
+        {name: 'AutosortMinutes', def: 10},
+        {name: 'OldBookmarkDays', def: config.oldBookmarkDaysDefault},
     ];
 
     var getter = function(key, def) {
-        return jhelpers.jQueryStorageGetValue(key) || def;
+        var value = jhelpers.jQueryStorageGetValue(key);
+        return _.isUndefined(value) || _.isNull(value) ? def : value;
     }
 
     var setter = function(key, value) {

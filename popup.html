@@ -10,7 +10,7 @@
 		<div class="bounce3"></div>
 	</div>
 
-	<!--********** JQuery ************-->
+	<!--********** RequireJS ************-->
     <script data-main="js/require_popup.js" src="js/require.js"></script>
 
 	<link href="css/jquery-ui.css" rel="stylesheet">
@@ -100,34 +100,54 @@
 		</div>
 	</div>
     <div id="tabs-4">
-		<p>Configure automatic sort, which will maintain order in your bookmarks while active. The three options below allow you to customize automatic sort.</p>
+		<p>Configure automatic sort, which will maintain order in your bookmarks while active.</p>
 		<div id="container2" style="width:500px">
             <input type="checkbox" id="button_interval"/>
 			<input type="checkbox" id="button_prioritize"/>
-			<input type="checkbox" id="button_cull"/>
-			<label for="button_interval" title="Will sort or destroy older bookmarks on a timed interval.">Sort</label>
+			<label for="button_interval" title="Will sort older bookmarks on a timed interval.">Sort</label>
 			<label for="button_prioritize" title="Will move recently added bookmarks to the top of the tree on a timed interval.">Prioritize</label>
-			<label for="button_cull" title="Will cull near-empty folders on a timed interval.">Cull</label>
+			<button id="button_settings_autosort">Settings</button>
 		</div>
 		<p>Enable and disable automatic sorting below.</p>
 		<input type="checkbox" id="button_autosort"/>
 		<label for="button_autosort" title="Enables or disables automatic sort. You must toggle me to refresh settings changed above.">Apply Changes</label>
+		<div id="dialog_auto_settings" title="Auto sort settings">
+			<input hidden autofocus>
+			<p>These advanced settings will take effect when text toggling automatic sorting.</p>
+			<div id="container_autosort_folders" style="width:500px">
+				<input type="checkbox" id="button_autosort_other"/>
+				<input type="checkbox" id="button_autosort_bar"/>
+				<input type="checkbox" id="button_autosort_mobile"/>
+				<label for="button_autosort_other" title="Autosort will include the Other Bookmarks folder.">Other Bookmarks</label>
+				<label for="button_autosort_bar" title="Autosort will include the Bookmarks Bar folder.">Bookmarks bar</label>
+				<label for="button_autosort_mobile" title="Autosort will include the Mobile Bookmarks folder.">Mobile bookmarks</label>
+			</div>
+			<p>
+				<label for="amount_days">Automatically sort when older than:</label>
+				<input type="text" id="amount_days" readonly style="border:0; color:#f6931f; font-weight:bold; background-color: inherit">
+			</p>
+			<div id="slider_days"></div>
+			<p>
+				<label for="spinner_intervaltime">Interval in minutes to automatically sort:</label>
+				<input id="spinner_intervaltime" name="value">
+			</p>
+		</div>
     </div>
 	<div id="tabs-5">
 		<div id="container3">
 			<p>Version 2.0.0</p>
 			<p>Powered by</p>		
-			<a href="http://alchemyapi.com" target="_blank"><img src="images/alchemyAPI.jpg" alt="AlchemyAPI Logo"></a>
-			<a href="http://jqueryui.com" target="_blank"><img src="images/jquery_ui_logo.png" alt="JQuery UI Logo"></a>
 			<a href="http://jquery.com" target="_blank"><img src="images/jquery_logo.png" alt="JQuery Logo"></a>
-			<p>Additionally thanks to</p>		
+			<a href="http://jqueryui.com" target="_blank"><img src="images/jquery_ui_logo.png" alt="JQuery UI Logo"></a>
+			<a href="http://alchemyapi.com" target="_blank"><img src="images/alchemyAPI.jpg" alt="AlchemyAPI Logo"></a>
+			<p>Additionally thanks to</p>
 			<a href="http://www.bennadel.com/blog/2326-jQuery-whenSync-Plugin-For-Chaining-Asynchronous-Callbacks-Using-Deferred-Objects.htm" target="_blank"><img src="images/epicenter.PNG" alt="JQuery whenSync"></a>
 			<a href="http://upstatement.com/blog/2012/01/jquery-local-storage-done-right-and-easy/" target="_blank"><img src="images/jquery_total_storage.png" alt="JQuery Total Storage"></a>
 			<a href="https://github.com/allmarkedup/jQuery-URL-Parser" target="_blank"><img src="images/jqueryUrlParser.PNG" alt="JQuery URL Parser"></a>
 			<p>"Knowledge is our greatest treasure"</p>			
 			<p>Next try <a href="https://chrome.google.com/webstore/detail/booglemarks/hojigclpigghnkdhhkhgjobmoghdecae" target="_blank">Booglemarks</a> to alphabetize your bookmarks.</p>
 			<p>And try <a href="https://chrome.google.com/webstore/detail/supersorter/hjebfgojnlefhdgmomncgjglmdckngij" target="_blank">SuperSorter</a> to clean up your bookmarks.</p>
-			<p>Looking for people to take over the project and fix my awful code.</p>
+			<p>Looking for people to contribute to my project.</p>
 			<p>Repository at <a href="https://github.com/kotarf/Smart-Bookmark-Sorter" target="_blank">GitHub</a></p>
 		</div>
 	</div>

@@ -1,7 +1,7 @@
 /**
  * Created by kotarf on 5/10/2015.
  */
-define(['jquery', 'chromeinterface', 'config', 'alchemy', 'config', 'jqueryhelpers', 'lib/Queue.src', 'lib/jquery.browser'], function($, chromex, cfg, alchemy, config, jhelpers, libqueue) {
+define(['jquery', 'chromeinterface', 'config', 'alchemy', 'config', 'jqueryhelpers', 'lib/Queue.src', 'lib/jquery.browser'], function($, chromex, cfg, alchemy, config, jhelpers) {
    return {
 
        createFolderIfNotExists : function(title, parentId) {
@@ -422,7 +422,7 @@ define(['jquery', 'chromeinterface', 'config', 'alchemy', 'config', 'jqueryhelpe
                else {
                    // Highlight all descendants if it is a folder
                    var ol = parentli.children("ol"),
-                       descendants = ol.find("li:not([parentid]) > div");
+                       descendants = ol.find("li:not([folder]) > div");
 
                    descendants.each(function(index, element) {
                        $(element).toggleClass("borderhighlight");
@@ -618,9 +618,13 @@ define(['jquery', 'chromeinterface', 'config', 'alchemy', 'config', 'jqueryhelpe
                parentId = bookmark.parentId,
                me = this;
 
+           console.log("Culling folder (single)", id, parentId);
+
            if ( $.browser.webkit ) {
                me.getChildren(id).done(function(results) {
                   var children = results;
+
+                   console.log("Children are", results);
 
                    // If folder has less than minimum bookmarks, move to parent and delete
                    if(_.isUndefined(children) || children.length < minimum)  {
@@ -633,13 +637,18 @@ define(['jquery', 'chromeinterface', 'config', 'alchemy', 'config', 'jqueryhelpe
                       });
 
                       $.when(promises).then(function() {
+                          console.log("When the promises to move complete");
                          me.removeBookmark(id).always(function() {
-                             console.log("Removing id", id);
+                             console.log("Then Remove id", id);
                              dfd.resolve();
                          });
                       });
-                  }
+                  } else {
+                       console.log("Immediately resolve if there are more children in this folder.")
+                       dfd.resolve();
+                   }
                }).fail(function() {
+                   console.log("Failure to get children");
                    dfd.reject();
                });
            }
@@ -680,13 +689,14 @@ define(['jquery', 'chromeinterface', 'config', 'alchemy', 'config', 'jqueryhelpe
                while(!_.isEmpty(folders)) {
                    var element = folders.pop();
 
+                   console.log("Popping this folder", element);
                    functs.push(
                        function(folder) {
                            return function(deferred) {
                                me.cullFolder(folder, minimum).done(function() {
                                    deferred.resolve();
                                }).fail(function() {
-                                   deferred.fail();
+                                   deferred.reject();
                                });
                            }
                        } (element)
@@ -696,21 +706,17 @@ define(['jquery', 'chromeinterface', 'config', 'alchemy', 'config', 'jqueryhelpe
                var asyncChain = jhelpers.jQueryWhenSync(me, functs);
 
                asyncChain.done(function() {
+                   console.log("Culling resolved");
                    dfd.resolve();
                });
 
                asyncChain.fail(function() {
+                   console.log("Failed to cull...");
                    dfd.fail();
                });
            });
 
            return dfd.promise();
-       },
-
-       cullArchives: function() {
-           /// TODO storage.getArchivesFolder
-           var archive = config.archivesFolder;
-
        },
 
        /**
@@ -739,6 +745,29 @@ define(['jquery', 'chromeinterface', 'config', 'alchemy', 'config', 'jqueryhelpe
            if($.browser.webkit) {
                return chromex.chromeGetBackgroundPage();
            }
+       },
+
+       /**
+        * Get the UTC date
+        * Courtesy of Michael Liu at http://stackoverflow.com/questions/542938/how-do-i-get-the-number-of-days-between-two-dates-in-jquery
+        * @param {date} date The date to treat as UTC
+        * @returns {int}
+        */
+       treatAsUTC : function (date) {
+           var result = new Date(date);
+           result.setMinutes(result.getMinutes() - result.getTimezoneOffset());
+           return result;
+       },
+
+       /**
+        * Get the days between two UTC dates
+        * Courtesy of Michael Liu at http://stackoverflow.com/questions/542938/how-do-i-get-the-number-of-days-between-two-dates-in-jquery
+        * @param {date} date The start date to treat as UTC, the end date to treat as UTC
+        * @returns {int}
+        */
+       daysBetween : function (startDate, endDate) {
+           var millisecondsPerDay = 24 * 60 * 60 * 1000;
+           return (this.treatAsUTC(endDate) - this.treatAsUTC(startDate)) / millisecondsPerDay;
        }
     }
 });

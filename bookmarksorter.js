@@ -26,15 +26,15 @@ define(["jquery", "underscore", "jqueryhelpers", "storage", "alchemy", "config",
 				var folderIds = arguments[0],
 					lastFolderId = folderIds[folderIds.length - 1];
 
-				// Copy the bookmark
+				// Move the bookmark
 				if(sortAction) {
-					shared.createBookmarkIfNotExists(lastFolderId, bookmark.title, bookmark.url).done(function(id, parentId) {
+					shared.moveBookmarkIfNotExists(bookmark, lastFolderId).done(function (id, parentId) {
 						dfd.resolve(id, parentId);
 					});
 				}
 				else {
-					// Otherwise, move the bookmark
-					shared.moveBookmarkIfNotExists(bookmark, lastFolderId).done(function (id, parentId) {
+					// Otherwise, create a copy by default
+					shared.createBookmarkIfNotExists(lastFolderId, bookmark.title, bookmark.url).done(function(id, parentId) {
 						dfd.resolve(id, parentId);
 					});
 				}
@@ -53,10 +53,8 @@ define(["jquery", "underscore", "jqueryhelpers", "storage", "alchemy", "config",
                 dfd = $.Deferred(),
 				rootId = _.isUndefined(rootId) ? config.rootBookmarksId : rootId,
 				archivesFolder = options.archivesFolder || config.archivesFolder,
-				cull = options.cull || false;
-
-			// Set a local storage variable to sorting in progress
-			storage.setIsOnManualSorting(true);
+				cull = options.cull,
+				cullThreshold = options.cullThreshold;
 
 			shared.createFolderIfNotExists(archivesFolder, rootId).done(function(archivesId) {
 				var count = 0;
@@ -77,6 +75,11 @@ define(["jquery", "underscore", "jqueryhelpers", "storage", "alchemy", "config",
 
 				var asyncChain = jhelpers.jQueryWhenSync(me, defFunctors);
 
+				asyncChain.then(function() {
+					// Set a local storage variable to sorting in progress
+					storage.setIsOnManualSorting(true);
+				});
+
 				asyncChain.always(function() {
 					// Set a local storage variable to finished sorting
 					storage.setIsOnManualSorting(false);
@@ -84,14 +87,16 @@ define(["jquery", "underscore", "jqueryhelpers", "storage", "alchemy", "config",
 
 				asyncChain.done(function() {
 					if(cull) {
-						/// TODO cull folder here
-						console.log("Would be culling");
+						shared.cullTree(archivesId, cullThreshold).always(function () {
+							console.log("Culling is complete");
+							dfd.resolve(archivesId, arguments);
+						});
 					}
 					else {
 						dfd.resolve(archivesId, arguments);
-						console.log("Not culling");
 					}
 				});
+
 				asyncChain.fail(function(results) {
 					dfd.reject(results);
 				});
@@ -111,28 +116,5 @@ define(["jquery", "underscore", "jqueryhelpers", "storage", "alchemy", "config",
 		{
 			this.sortToplevelBookmarks(config.sampleNumber);
 		},
-
-		/**
-		 * Get the UTC date
-		 * Courtesy of Michael Liu at http://stackoverflow.com/questions/542938/how-do-i-get-the-number-of-days-between-two-dates-in-jquery
-		 * @param {date} date The date to treat as UTC
-		 * @returns {int}
-		 */
-		treatAsUTC : function (date) {
-			var result = new Date(date);
-			result.setMinutes(result.getMinutes() - result.getTimezoneOffset());
-			return result;
-		},
-
-		/**
-		 * Get the days between two UTC dates
-		 * Courtesy of Michael Liu at http://stackoverflow.com/questions/542938/how-do-i-get-the-number-of-days-between-two-dates-in-jquery
-		 * @param {date} date The start date to treat as UTC, the end date to treat as UTC
-		 * @returns {int}
-		 */
-		daysBetween : function (startDate, endDate) {
-			var millisecondsPerDay = 24 * 60 * 60 * 1000;
-			return (this.treatAsUTC(endDate) - this.treatAsUTC(startDate)) / millisecondsPerDay;
-		}
 	};
 });

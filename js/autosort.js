@@ -1,41 +1,17 @@
 /**
  * Created by kotarf on 8/9/2015.
  */
-define(['sortapi', 'storage', 'sharedbrowser', 'chromeinterface', 'config', 'jqueryhelpers'], function(sortlib, storage, shared, chromex, config, jhelpers) {
+define(['sortapi', 'storage', 'sharedbrowser', 'chromeinterface', 'config', 'lib/Queue.src'], function(sortlib, storage, shared, chromex, config) {
    return {
-       /**
-        * Enable the automatic create sort.
-        * Sorts bookmarks as they are created
-        */
-       attachCreateSort : function () {
-           /* When a bookmark is created, it will be moved to an appropriate Title folder." */
-           chromex.chromeBookmarkOnCreated(this.onCreatedListener);
-       },
-
        /**
         * Enable the automatic timed sort.
         * Sorts older bookmarks on a timed interval.
         */
        attachIntervalSort : function () {
            /* On a timed interval, older bookmarks will be archived to a Category folder and loose bookmarks will be sorted. */
-           console.log("Attaching.");
-           chromex.chromeDeployAlarm(config.bookmarkAlarm, this.intervalAlarm, config.autoSortMinutes);
-       },
-
-       /**
-        * Enable the automatic visit sort.
-        * Will send bookmarks to the top as they are accessed.
-        */
-       attachVisitSort : function () {
-           /*When visiting a URL, a matching bookmark will be moved up. <TODO?> If it's in an archive, it will be taken out. */
-           chromex.chromeHistoryOnVisited(this.onVisitedListener);
-       },
-
-       /**
-        * Detaches the automatic create sort
-        */
-       detachCreateSort : function () {
-           chromex.chromeBookmarksDetachCreated(this.onCreatedListener);
+           var alarmTime = storage.getAutosortMinutes();
+           console.log("Attaching.", alarmTime);
+           chromex.chromeDeployAlarm(config.bookmarkAlarm, this.sortOnInterval, alarmTime);
        },
 
        /**
@@ -47,27 +23,19 @@ define(['sortapi', 'storage', 'sharedbrowser', 'chromeinterface', 'config', 'jqu
        },
 
        /**
-        * Detaches the automatic visit sort
-        */
-       detachVisitSort : function () {
-           chromex.chromeHistoryDetachVisited(this.onVisitedListener);
-       },
-
-       /**
         * Enables automatic sort
         * Checks local storage configuration values to determine which sorts to enable
         */
-       enableAutomaticSort : function (sort, prioritize, cull) {
+       enableAutomaticSort : function (sort, prioritize) {
+           console.log("Enabling automatic sort");
            if(sort) {
+               console.log("Enabling interval sort");
+
                this.attachIntervalSort();
            }
 
            if(prioritize) {
                //this.attachVisitSort();
-           }
-
-           if(cull) {
-
            }
        },
 
@@ -81,87 +49,24 @@ define(['sortapi', 'storage', 'sharedbrowser', 'chromeinterface', 'config', 'jqu
            me.detachIntervalSort();
        },
 
-       /**
-        * Listener for the onCreated automatic sort
-        * @param {id} id The id of the bookmark that was just created.
-        * @param {bookmark} bookmark The bookmark that was just created.
-        */
-       onCreatedListener : function (id, bookmark)
-       {
-           console.log("****************ON CREATE LISTENER KICKED OFF****************", id, bookmark);
-           // Sort the bookmark by title
-           var me = this,
-               deferred = $.Deferred();
-
-           // Always re-attach create sort if it should be enabled, but only after a bookmark is sorted
-           deferred.always(function() {
-               storage.setIsOnCreateSorting(false);
-
-               // If auto create should be on, re-attach it
-               if (SBS.getAutoOnCreate() && SBS.getAutoOn() && !SBS.getIsSorting()) {
-                   SBS.attachCreateSort();
-               }
-
-           });
-
-           // Set is sorting
-           storage.setIsOnCreateSorting(true);
-
-           // Disable the bookmark onCreate listener, because programmatic creation of bookmarks/folders will kick off the event
-           SBS.detachCreateSort();
-
-           SBS.sortBookmark(bookmark, function(){
-               deferred.resolve();
-           }, deferred);
-       },
-
-       /**
-        * Listener for the onVisited automatic sort
-        * Searches through bookmarks for a URL match
-        * @param {HistoryItem} result The HistoryItem of the URL that was visited.
-        */
-       onVisitedListener : function (result)
-       {
-           var url = result.url,
-               me = this,
-               SBS = me.SmartBookmarkSorter,
-               isSorting = SBS.getIsSorting();
-
-           // Check if any sorting is in progress, if so do not move anything
-           if (!isSorting) {
-               // Check if a matching bookmark exists
-               SBS.searchBookmarks(url, function(results) {
-                   var result = results[0];
-
-                   // Matching bookmark to url exists
-                   if(result !==  undefined)
-                   {
-                       var id = result.id;
-                       var parentId = result.parentId;
-
-                       if ( parentId !== SBS.config.rootBookmarksId ) {
-
-                           // Move it to the top of other bookmarks if it's not in root bookmarks
-                           SBS.getOtherBookmarks(function(result) {
-
-                               var otherBookmarksId = result.id;
-
-                               var destination = {
-                                   parentId : otherBookmarksId,
-                                   index : 0
-                               };
-
-                               chromex.moveBookmark(id, destination, function() {});
-                           });
-                       }
-                   }
-                   // Otherwise, do nothing.
-               });
-           }
-       },
-
        recentlySortedAlarm: function (alarm) {
+            chromex.chromeGetRecentlyAddedItems(function(items) {
 
+            });
+       },
+
+       sortIfOld: function(bookmark, dateThreshold) {
+           var dateAdded = new Date(bookmark.dateAdded),
+               today = new Date(),
+               daysBetween = shared.daysBetween(dateAdded, today);
+
+           if(daysBetween > dateThreshold) {
+               console.log("Would be sorting", bookmark, dateThreshold);
+               //sortlib.sortBookmarks(bookmark);
+           }
+           else {
+               // Not sorting because too recent
+           }
        },
 
        /**
@@ -172,63 +77,113 @@ define(['sortapi', 'storage', 'sharedbrowser', 'chromeinterface', 'config', 'jqu
         * @config {int} [rootBookmarksIndex] Index of root bookmarks
         * @config {int} [otherBookmarksIndex] Index of other bookmarks
         */
-       intervalAlarm : function (alarm)
+       sortOnInterval : function ()
        {
-           // Get the local counter or start it at 0
-           var me = this,
-               counterValue = storage.getAutosortCounter() || 0,
-               manualSortInProgress = storage.getIsOnManualSorting();
+           var me = this;
 
-           console.log("Event fired", counterValue, manualSortInProgress);
-           if(!manualSortInProgress) {
-               shared.bookmarksTree().done(function(results) {
-                   // Get the bookmark at the current index
-                   var bookmark = results[counterValue];
+           var flattenTree = function(results, counterValue) {
+               var queue = new Queue(),
+                   bookmarks = [],
+                   index = 0;
 
-                   if(!_.isUndefined(bookmark)) {
-                       if(!shared.isFolder(bookmark)) {
-                           console.log("Would be sorting", bookmark);
-                            //sortlib.sortBookmarks(bookmark);
-                       }
+               queue.enqueue(results[0]);
+
+               // Iterate through tree w/ queue. Add children folders to stack.
+               while(!queue.isEmpty() && index < counterValue + 1) {
+                   var bookmark = queue.dequeue(),
+                       children = bookmark.children;
+
+                   if(children) {
+                       _.each(children, function(child) {
+                           if(!shared.isFolder(child)) {
+                               bookmarks.push(child);
+                               index = index + 1;
+                           }
+                           else {
+                               queue.enqueue(child);
+                           }
+                       });
                    }
+               }
 
-                   // Set the counter to the next index, or 0 if it is the tail
-                   var incCounter = counterValue < results.length ? counterValue + 1 : 0;
+               return bookmarks;
+           }
 
-                   storage.setAutosortCounter(incCounter);
-               });
+           // Get the local counters
+           var autosortOther = storage.getAutosortOtherBookmarks(),
+               autosortBar = storage.getAutosortBookmarksBar(),
+               autosortMobile = storage.getAutosortMobileBookmarks(),
+               manualSortInProgress = storage.getIsOnManualSorting(),
+               dateThreshold = storage.getOldBookmarkDays();
+
+           if(!manualSortInProgress) {
+               if(autosortOther) {
+                   shared.bookmarksSubTree(config.otherBookmarksId).done(function(results) {
+                       var counterValue = storage.getAutosortCounterOther(),
+                           bookmarks = flattenTree(results, counterValue);
+
+                       // Get the bookmark at the current index in Other Bookmarks
+                       var bookmark = bookmarks[counterValue],
+                           incCounter = counterValue;
+
+                       if(!_.isUndefined(bookmark)) {
+                           me.AutoSort.sortIfOld(bookmark, dateThreshold);
+                           incCounter = counterValue + 1;
+                       }
+                       else
+                       {
+                           incCounter = 0;
+                       }
+
+                       storage.setAutosortCounterOther(incCounter);
+                   });
+               }
+
+               if(autosortBar) {
+                   shared.bookmarksSubTree(config.rootBookmarksId).done(function(results) {
+                       var counterValue = storage.getAutosortCounterBar(),
+                            bookmarks = flattenTree(results, counterValue);
+
+                       // Get the bookmark at the current index in bookmarks bar
+                       var bookmark = bookmarks[counterValue],
+                           incCounter = counterValue;
+
+                       if(!_.isUndefined(bookmark)) {
+                           me.AutoSort.sortIfOld(bookmark, dateThreshold);
+                           incCounter = counterValue + 1;
+                       }
+                       else
+                       {
+                           incCounter = 0;
+                       }
+
+                       storage.setAutosortCounterBar(incCounter);
+                   });
+               }
+
+               if(autosortMobile) {
+
+                   shared.bookmarksSubTree(config.mobileBookmarksId).done(function(results) {
+                       var counterValue = storage.getAutosortCounterMobile(),
+                            bookmarks = flattenTree(results, counterValue);
+
+                       // Get the bookmark at the current index in Mobile bookmarks
+                       var bookmark = bookmarks[counterValue],
+                           incCounter = counterValue;
+
+                       if(!_.isUndefined(bookmark)) {
+                           me.AutoSort.sortIfOld(bookmark, dateThreshold);
+                           incCounter = counterValue + 1;
+                       }
+                       else
+                       {
+                           incCounter = 0;
+                       }
+
+                       storage.setAutosortCounterMobile(incCounter);
+                   });
+               }
            }
        },
-
-       /**
-        * Attach import listeners
-        */
-       attachImportListeners : function() {
-           chromex.chromeOnImportBegan(this.onImportBeganListener);
-           chromex.chromeOnImportEnd(this.onImportEndListener);
-       },
-
-       /**
-        * When an import starts, disable automatic sort
-        */
-       onImportBeganListener : function () {
-           // When an import starts, disable automatic sort
-           var me = this.SmartBookmarkSorter;
-
-           me.disableAutomaticSort();
-       },
-
-       /**
-        * When an import ends, enable automatic sort if it is configured to be enabled
-        */
-       onImportEndListener : function() {
-           // When an import ends, enable automatic sort
-           var me = this.SmartBookmarkSorter,
-               isAutoSort = me.getAutoOn();
-
-           if (isAutoSort) {
-               me.enableAutomaticSort();
-           }
-       }
    }
 });
