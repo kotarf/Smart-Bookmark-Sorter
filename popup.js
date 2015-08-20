@@ -35,6 +35,11 @@ define(["jquery", "sortapi", "storage", "autosort", "alchemy", "sharedbrowser", 
         $("#tabs").tabs({active: 2});
     }
 
+    $("#link_alchemy").click(function(e) {
+        e.preventDefault();
+        shared.openTab($(this).attr("href"));
+    });
+
     $("#dialog_confirm_privacy").dialog({
         resizable: false,
         height: 300,
@@ -128,9 +133,9 @@ define(["jquery", "sortapi", "storage", "autosort", "alchemy", "sharedbrowser", 
 
     selectMenu.prop("selectedIndex",outputIndex).selectmenu('refresh');
 
-    $("#id_folders-button").tooltip({
+    $('#id_folders-button').tooltip({
             items: "span",
-            content: 'Select the output folder for sorted results. All results will be placed in a folder called Archives.',
+            content: 'Select the output folder for sorted results.',
             position: { at: "bottom center" }
     });
 
@@ -202,7 +207,7 @@ define(["jquery", "sortapi", "storage", "autosort", "alchemy", "sharedbrowser", 
         } else {
             storage.setIsOnCullBookmarks(false);
         }
-    }).prop('checked', storage.getIsOnCullBookmarks()).button("refresh");
+    }).prop('checked', storage.getIsOnCullBookmarks());
 
     $( "#radio_sortAction" ).buttonset();
 
@@ -246,8 +251,18 @@ define(["jquery", "sortapi", "storage", "autosort", "alchemy", "sharedbrowser", 
                     // Sort selected bookmarks
                     var selectedBookmarks = shared.selectedBookmarks(bookmarks);
 
+                    if(selectedBookmarks.length === 0) {
+                        $(this).dialog("close");
+                        $("<div>No bookmarks selected! Please select bookmarks in the tree below before attempting to sort.</div>").dialog({
+                            title: "No bookmarks selected",
+                            modal: true,
+                            draggable: false
+                        });
+                        return;
+                    }
+
                     // Output directory
-                    var rootIndex = shared.selectedIndexModifier(selectMenu.prop("selectedIndex")),
+                    var rootIndex = shared.selectedIndexModifier(storage.getOutputIndex()),
                         archivesFolder = storage.getArchivesName(),
                         sortAction = storage.getSortAction(),
                         maxLevels = storage.getMaxTaxonomyLevels(),
@@ -308,11 +323,11 @@ define(["jquery", "sortapi", "storage", "autosort", "alchemy", "sharedbrowser", 
     });
 
     $("#dialog_auto_settings").dialog({
-        height: 300,
         width: 400,
-        resizable: false,
+        height: "auto",
+        resizable: true,
         draggable: false,
-        autoOpen: false
+        autoOpen: false,
     });
 
     $("#button_settings_autosort").button({
@@ -324,6 +339,10 @@ define(["jquery", "sortapi", "storage", "autosort", "alchemy", "sharedbrowser", 
     }).click(function() {
         $("#dialog_auto_settings").dialog("open");
     });
+
+    $("#dialog_auto_settings").css({height:"350px", overflowy:"auto"});
+
+    $( "#tabs_autosort_settings" ).tabs({heightStyle: "content"});
 
     // Restore states for autosort buttons
     var isOnInterval = storage.getAutoInterval(),
@@ -440,5 +459,32 @@ define(["jquery", "sortapi", "storage", "autosort", "alchemy", "sharedbrowser", 
         min: 5,
         max: 120
     }).spinner( "value", storage.getAutosortMinutes() );
+
+    $( "#radio_priorityOutputDest" ).buttonset();
+
+    var priorityDest = storage.getAutosortPrioritizeDirectory();
+
+    if(priorityDest === 2) {
+        $("#radio_priorityOther").prop('checked', true).button("refresh");
+    }
+    else if(priorityDest === 1) {
+        $("#radio_priorityBar").prop('checked', true).button("refresh");
+    } else {
+        $("#radio_priorityMobile").prop('checked', true).button("refresh");
+    }
+    $( "#radio_priorityOutputDest" ).buttonset('refresh');
+
+    $('#radio_priorityOther').button().click(function() {
+        var isChecked = $("#radio_priorityOther").is(':checked');
+        storage.setAutosortPrioritizeDirectory(2);
+    });
+    $('#radio_priorityBar').button().click(function() {
+        var isChecked = $("#radio_priorityBar").is(':checked');
+        storage.setAutosortPrioritizeDirectory(1);
+    });
+    $('#radio_priorityMobile').button().click(function() {
+        var isChecked = $("#radio_priorityMobile").is(':checked');
+        storage.setAutosortPrioritizeDirectory(3);
+    });
 
 });

@@ -331,15 +331,15 @@ define(["jquery"], function($){
         /**
          * Get recently added bookmarks
          * */
-        chromeGetRecentlyAddedItems: function(max) {
+        chromeGetRecentlyAddedBookmarks: function(max) {
             var dfd = $.Deferred();
 
             chrome.bookmarks.getRecent(max, function(items) {
-                var foldersOnly = _.filter(items, function(element) {
-                    return _.isUndefined(element.url);
+                var bookmarksOnly = _.filter(items, function(element) {
+                    return !_.isUndefined(element.url);
                 });
 
-                dfd.resolve(foldersOnly);
+                dfd.resolve(bookmarksOnly);
             });
 
             return dfd.promise();

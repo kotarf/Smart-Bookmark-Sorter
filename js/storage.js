@@ -24,8 +24,9 @@ define(['underscore', 'jqueryhelpers', 'config'], function(_, jhelpers, config) 
         {name: 'AutosortOtherBookmarks', def: true},
         {name: 'AutosortBookmarksBar'},
         {name: 'AutosortMobileBookmarks'},
-        {name: 'AutosortMinutes', def: 10},
+        {name: 'AutosortMinutes', def: config.autoSortMinutes},
         {name: 'OldBookmarkDays', def: config.oldBookmarkDaysDefault},
+        {name: 'AutosortPrioritizeDirectory', def: 2}
     ];
 
     var getter = function(key, def) {

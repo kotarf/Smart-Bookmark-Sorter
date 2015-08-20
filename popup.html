@@ -30,7 +30,7 @@
 		<body>
 		<div class="ui-widget">
 			<p>Welcome to Smart Bookmark Sorter. You must register for an AlchemyAPI key to use this extension. AlchemyAPI is used to intelligently sort your bookmarks.</p>
-			<p>Register at <a href="http://www.alchemyapi.com/api/register.html" target="_blank">AlchemyAPI</a></p>
+			<p>Register at <a href="http://www.alchemyapi.com/api/register.html" target="_blank" id="link_alchemy">AlchemyAPI</a></p>
 		</div>
 		<h2 class="demoHeaders">API Key</h2>
 		<div>
@@ -88,7 +88,8 @@
                 <input id="spinner_settings_taxonomylevels" name="value">
             </p>
             <div id="container_settings_cull" style="width:500px">
-				<input type="checkbox" id="check_cull"><label for="check_cull">Cull bookmarks</label>
+				<input type="checkbox" id="check_cull">
+				<label for="check_cull" title="Folders with less than the configured number of bookmarks will be purged after their contents are moved up the tree.">Cull bookmarks</label>
 				<label for="spinner_cull_num">if less than</label>
 				<input id="spinner_cull_num">
 			</div>
@@ -105,32 +106,46 @@
             <input type="checkbox" id="button_interval"/>
 			<input type="checkbox" id="button_prioritize"/>
 			<label for="button_interval" title="Will sort older bookmarks on a timed interval.">Sort</label>
-			<label for="button_prioritize" title="Will move recently added bookmarks to the top of the tree on a timed interval.">Prioritize</label>
+			<label for="button_prioritize" title="Will move recently added bookmarks into the configured tree on a timed interval.">Prioritize</label>
 			<button id="button_settings_autosort">Settings</button>
 		</div>
 		<p>Enable and disable automatic sorting below.</p>
 		<input type="checkbox" id="button_autosort"/>
 		<label for="button_autosort" title="Enables or disables automatic sort. You must toggle me to refresh settings changed above.">Apply Changes</label>
 		<div id="dialog_auto_settings" title="Auto sort settings">
-			<input hidden autofocus>
-			<p>These advanced settings will take effect when text toggling automatic sorting.</p>
-			<div id="container_autosort_folders" style="width:500px">
-				<input type="checkbox" id="button_autosort_other"/>
-				<input type="checkbox" id="button_autosort_bar"/>
-				<input type="checkbox" id="button_autosort_mobile"/>
-				<label for="button_autosort_other" title="Autosort will include the Other Bookmarks folder.">Other Bookmarks</label>
-				<label for="button_autosort_bar" title="Autosort will include the Bookmarks Bar folder.">Bookmarks bar</label>
-				<label for="button_autosort_mobile" title="Autosort will include the Mobile Bookmarks folder.">Mobile bookmarks</label>
+			<div id="tabs_autosort_settings">
+				<ul>
+					<li><a href="#tabs_autosort_1">Sort</a></li>
+					<li><a href="#tabs_autosort_2">Prioritize</a></li>
+				</ul>
+				<div id="tabs_autosort_1">
+					<div id="container_autosort_folders" style="width:500px">
+						<input type="checkbox" id="button_autosort_other"/>
+						<input type="checkbox" id="button_autosort_bar"/>
+						<input type="checkbox" id="button_autosort_mobile"/>
+						<label for="button_autosort_other" title="Autosort will include the Other Bookmarks folder.">Other Bookmarks</label>
+						<label for="button_autosort_bar" title="Autosort will include the Bookmarks Bar folder.">Bookmarks bar</label>
+						<label for="button_autosort_mobile" title="Autosort will include the Mobile Bookmarks folder.">Mobile bookmarks</label>
+					</div>
+					<p>
+						<label for="amount_days">Automatically sort when bookmark is older than:</label>
+						<input type="text" id="amount_days" readonly style="border:0; color:#f6931f; font-weight:bold; background-color: inherit">
+					</p>
+					<div id="slider_days"></div>
+					<p>
+						<label for="spinner_intervaltime">Interval in minutes to automatically sort:</label>
+						<input id="spinner_intervaltime" name="value">
+					</p>
+				</div>
+				<div id="tabs_autosort_2">
+					<label for="radio_priorityOutputDest">Choose where to prioritize bookmarks</label>
+					<div id="radio_priorityOutputDest">
+						<input type="radio" id="radio_priorityOther" name="radio2"><label for="radio_priorityOther">Other Bookmarks</label>
+						<input type="radio" id="radio_priorityBar" name="radio2"><label for="radio_priorityBar">Bookmarks Bar</label>
+						<input type="radio" id="radio_priorityMobile" name="radio2"><label for="radio_priorityMobile">Mobile bookmarks</label>
+					</div>
+				</div>
 			</div>
-			<p>
-				<label for="amount_days">Automatically sort when older than:</label>
-				<input type="text" id="amount_days" readonly style="border:0; color:#f6931f; font-weight:bold; background-color: inherit">
-			</p>
-			<div id="slider_days"></div>
-			<p>
-				<label for="spinner_intervaltime">Interval in minutes to automatically sort:</label>
-				<input id="spinner_intervaltime" name="value">
-			</p>
 		</div>
     </div>
 	<div id="tabs-5">

@@ -1,7 +1,7 @@
 /**
  * Created by kotarf on 8/9/2015.
  */
-define(['sortapi', 'storage', 'sharedbrowser', 'chromeinterface', 'config', 'lib/Queue.src'], function(sortlib, storage, shared, chromex, config) {
+define(['sortapi', 'storage', 'sharedbrowser', 'chromeinterface', 'config', 'lib/Queue.src'], function(sortapi, storage, shared, chromex, config) {
    return {
        /**
         * Enable the automatic timed sort.
@@ -10,14 +10,17 @@ define(['sortapi', 'storage', 'sharedbrowser', 'chromeinterface', 'config', 'lib
        attachIntervalSort : function () {
            /* On a timed interval, older bookmarks will be archived to a Category folder and loose bookmarks will be sorted. */
            var alarmTime = storage.getAutosortMinutes();
-           console.log("Attaching.", alarmTime);
            chromex.chromeDeployAlarm(config.bookmarkAlarm, this.sortOnInterval, alarmTime);
        },
 
+       attachPrioritizeSort: function() {
+           chromex.chromeDeployAlarm(config.prioritizeAlarm, this.recentlySortedAlarm, config.autoPrioritizeMinutes);
+       },
+
        /**
-        * Detaches the automatic interval sort
+        * Detaches all alarms
         */
-       detachIntervalSort : function () {
+       detachAlarms : function () {
            // TODO clear alarm by name
            chromex.chromeClearAlarms();
        },
@@ -27,15 +30,13 @@ define(['sortapi', 'storage', 'sharedbrowser', 'chromeinterface', 'config', 'lib
         * Checks local storage configuration values to determine which sorts to enable
         */
        enableAutomaticSort : function (sort, prioritize) {
-           console.log("Enabling automatic sort");
            if(sort) {
-               console.log("Enabling interval sort");
-
+               console.log("Attach interval");
                this.attachIntervalSort();
            }
-
            if(prioritize) {
-               //this.attachVisitSort();
+               console.log("Attach prior");
+               this.attachPrioritizeSort();
            }
        },
 
@@ -46,23 +47,30 @@ define(['sortapi', 'storage', 'sharedbrowser', 'chromeinterface', 'config', 'lib
        disableAutomaticSort : function () {
            var me = this;
 
-           me.detachIntervalSort();
+           me.detachAlarms();
        },
 
        recentlySortedAlarm: function (alarm) {
-            chromex.chromeGetRecentlyAddedItems(function(items) {
+           var isManualSorting = storage.getIsOnManualSorting(),
+               targetDirectory = storage.getAutosortPrioritizeDirectory();
 
-            });
+           if (!isManualSorting) {
+               chromex.chromeGetRecentlyAddedBookmarks(5).done(function(results) {
+                   _.each(results, function(element) {
+                        shared.moveBookmark(element.id, targetDirectory);
+                   });
+               });
+           }
        },
 
-       sortIfOld: function(bookmark, dateThreshold) {
+       sortIfOld: function(dateThreshold, bookmark, rootIndex, options) {
            var dateAdded = new Date(bookmark.dateAdded),
                today = new Date(),
                daysBetween = shared.daysBetween(dateAdded, today);
 
            if(daysBetween > dateThreshold) {
-               console.log("Would be sorting", bookmark, dateThreshold);
-               //sortlib.sortBookmarks(bookmark);
+               console.log("Auotmatically sorting", bookmark, dateThreshold);
+               sortapi.sortBookmarksEx(bookmark, rootIndex, options);
            }
            else {
                // Not sorting because too recent
@@ -116,6 +124,16 @@ define(['sortapi', 'storage', 'sharedbrowser', 'chromeinterface', 'config', 'lib
                manualSortInProgress = storage.getIsOnManualSorting(),
                dateThreshold = storage.getOldBookmarkDays();
 
+           // Get options
+           var rootIndex = shared.selectedIndexModifier(storage.getOutputIndex()),
+               archivesFolder = storage.getArchivesName(),
+               sortAction = storage.getSortAction(),
+               maxLevels = storage.getMaxTaxonomyLevels(),
+               cull = false,
+               cullThreshold = false;
+
+           var options = {archivesFolder: archivesFolder, sortAction: sortAction, maxLevels: maxLevels, cull:cull, cullThreshold: cullThreshold};
+
            if(!manualSortInProgress) {
                if(autosortOther) {
                    shared.bookmarksSubTree(config.otherBookmarksId).done(function(results) {
@@ -127,7 +145,7 @@ define(['sortapi', 'storage', 'sharedbrowser', 'chromeinterface', 'config', 'lib
                            incCounter = counterValue;
 
                        if(!_.isUndefined(bookmark)) {
-                           me.AutoSort.sortIfOld(bookmark, dateThreshold);
+                           me.AutoSort.sortIfOld(dateThreshold, bookmark, rootIndex, options);
                            incCounter = counterValue + 1;
                        }
                        else
