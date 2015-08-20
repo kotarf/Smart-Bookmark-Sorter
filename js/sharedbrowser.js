@@ -128,7 +128,8 @@ define(['jquery', 'chromeinterface', 'config', 'alchemy', 'config', 'jqueryhelpe
        },
 
         moveBookmark: function(id, destination) {
-            var dfd = $.Deferred();
+            var dfd = $.Deferred(),
+                destination = destination.toString();
 
             if($.browser.webkit ) {
                 chromex.moveBookmark(id, destination).always(function(result) {
@@ -442,7 +443,7 @@ define(['jquery', 'chromeinterface', 'config', 'alchemy', 'config', 'jqueryhelpe
            // Select all
            $(document).bind('keydown', 'ctrl+a', function() {
                var sortable = $(".sortable"),
-                   descendants = sortable.find("li:not([parentid]) > div");
+                   descendants = sortable.find("li:not([folder]) > div");
 
                if(descendants.length != 0) {
                    descendants.each(function(index, element) {
@@ -484,7 +485,7 @@ define(['jquery', 'chromeinterface', 'config', 'alchemy', 'config', 'jqueryhelpe
                return { id: liElement.attr("id"), url: divElement.attr("url"), title: divElement.text(), parentId: liElement.attr("parentId") }
            });
 
-           return bookmarks;
+           return $.makeArray(bookmarks);
        },
 
        /**
@@ -618,13 +619,9 @@ define(['jquery', 'chromeinterface', 'config', 'alchemy', 'config', 'jqueryhelpe
                parentId = bookmark.parentId,
                me = this;
 
-           console.log("Culling folder (single)", id, parentId);
-
            if ( $.browser.webkit ) {
                me.getChildren(id).done(function(results) {
                   var children = results;
-
-                   console.log("Children are", results);
 
                    // If folder has less than minimum bookmarks, move to parent and delete
                    if(_.isUndefined(children) || children.length < minimum)  {
@@ -637,18 +634,14 @@ define(['jquery', 'chromeinterface', 'config', 'alchemy', 'config', 'jqueryhelpe
                       });
 
                       $.when(promises).then(function() {
-                          console.log("When the promises to move complete");
                          me.removeBookmark(id).always(function() {
-                             console.log("Then Remove id", id);
                              dfd.resolve();
                          });
                       });
                   } else {
-                       console.log("Immediately resolve if there are more children in this folder.")
                        dfd.resolve();
                    }
                }).fail(function() {
-                   console.log("Failure to get children");
                    dfd.reject();
                });
            }
@@ -677,7 +670,6 @@ define(['jquery', 'chromeinterface', 'config', 'alchemy', 'config', 'jqueryhelpe
                    if(children) {
                        _.each(children, function(child) {
                            if(me.isFolder(child)) {
-                               console.log("pushng 2 ", child);
                                folders.push(child);
                                queue.enqueue(child);
                            }
@@ -706,12 +698,10 @@ define(['jquery', 'chromeinterface', 'config', 'alchemy', 'config', 'jqueryhelpe
                var asyncChain = jhelpers.jQueryWhenSync(me, functs);
 
                asyncChain.done(function() {
-                   console.log("Culling resolved");
                    dfd.resolve();
                });
 
                asyncChain.fail(function() {
-                   console.log("Failed to cull...");
                    dfd.fail();
                });
            });
@@ -768,6 +758,12 @@ define(['jquery', 'chromeinterface', 'config', 'alchemy', 'config', 'jqueryhelpe
        daysBetween : function (startDate, endDate) {
            var millisecondsPerDay = 24 * 60 * 60 * 1000;
            return (this.treatAsUTC(endDate) - this.treatAsUTC(startDate)) / millisecondsPerDay;
+       },
+
+       openTab: function(url) {
+           if($.browser.webkit) {
+               chrome.tabs.create({url: url, active: false});
+           }
        }
     }
 });
