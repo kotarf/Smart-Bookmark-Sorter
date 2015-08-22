@@ -39,5 +39,5 @@ define({
     taxonomyDelimiter:          "/",
     archivesFolder:             "Archives",
     defaultTaxonomyLevels:      3,
-    defaultCullNumber:          5
+    defaultCullNumber:          3
 });

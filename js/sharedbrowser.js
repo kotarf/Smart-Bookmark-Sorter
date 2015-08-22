@@ -348,10 +348,8 @@ define(['jquery', 'chromeinterface', 'config', 'alchemy', 'config', 'jqueryhelpe
        },
 
        nestedList : function() {
-
            // Initialize the bookmarks tree
-           var bm = $('.sortable'),
-               selectedElement;
+           var bm = $('.sortable');
 
            bm.nestedSortable({
                handle: 'div',
@@ -498,8 +496,6 @@ define(['jquery', 'chromeinterface', 'config', 'alchemy', 'config', 'jqueryhelpe
                parentli = $(selectorParent),
                parent = parentli.children("ol");
 
-           var li = this.createFolderDOM(bookmark);
-
            if(_.isUndefined(bookmark.url))
            {
                var li = this.createFolderDOM(bookmark),
@@ -517,7 +513,6 @@ define(['jquery', 'chromeinterface', 'config', 'alchemy', 'config', 'jqueryhelpe
 
                li.appendTo(parent);
            }
-
        },
 
        /**
@@ -531,9 +526,9 @@ define(['jquery', 'chromeinterface', 'config', 'alchemy', 'config', 'jqueryhelpe
                parentli = $(selectorParent),
                parentol = parentli.children("ol");
 
-           $(selectorChild).detach().appendTo(parentol);
+           var moved = $(selectorChild).detach().appendTo(parentol);
 
-           $(selectorChild).toggleClass("borderhighlight", false);
+           moved.children("div").toggleClass("borderhighlight", false);
        },
 
        /**
@@ -681,7 +676,6 @@ define(['jquery', 'chromeinterface', 'config', 'alchemy', 'config', 'jqueryhelpe
                while(!_.isEmpty(folders)) {
                    var element = folders.pop();
 
-                   console.log("Popping this folder", element);
                    functs.push(
                        function(folder) {
                            return function(deferred) {

@@ -275,6 +275,9 @@ define(["jquery", "sortapi", "storage", "autosort", "alchemy", "sharedbrowser", 
                     $("#lock_icon").toggleClass("fa-unlock", false);
                     $("#lock_icon").toggleClass("fa-lock", true);
                     $("#lock_icon").attr('title',"Sorting operations are in progress. Please wait until they are complete to perform another operation.");
+                    $('#button_sort').button('disable');
+                    $('#button_sample').button('disable');
+                    $('#button_settings').button('disable');
 
                     // Initialize progress
                     $("#progressbar_sorting").progressbar("option", "value", 0);
@@ -286,8 +289,11 @@ define(["jquery", "sortapi", "storage", "autosort", "alchemy", "sharedbrowser", 
                         $("#lock_icon").toggleClass("fa-lock", false);
                         $("#lock_icon").toggleClass("fa-unlock", true);
                         $("#lock_icon").attr('title',"No sorting operations are in progress; actions may be taken.");
+                        $('#button_sort').button('enable');
+                        $('#button_sample').button('enable');
+                        $('#button_settings').button('enable');
 
-                    }).progress(function(index) {
+                    }).progress(function(index, id) {
                         // Update progress bar
                         $("#progressbar_sorting").progressbar("option", "value", index);
                     });

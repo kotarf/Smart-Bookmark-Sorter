@@ -54,7 +54,8 @@ define(["jquery", "underscore", "jqueryhelpers", "storage", "alchemy", "config",
 				rootId = _.isUndefined(rootId) ? config.rootBookmarksId : rootId,
 				archivesFolder = options.archivesFolder || config.archivesFolder,
 				cull = options.cull,
-				cullThreshold = options.cullThreshold;
+				cullThreshold = options.cullThreshold,
+                bookmarks = _.isArray(bookmarks) ? bookmarks : new Array(bookmarks);
 
 			shared.createFolderIfNotExists(archivesFolder, rootId).done(function(archivesId) {
 				var count = 0;
@@ -88,7 +89,6 @@ define(["jquery", "underscore", "jqueryhelpers", "storage", "alchemy", "config",
 				asyncChain.done(function() {
 					if(cull) {
 						shared.cullTree(archivesId, cullThreshold).always(function () {
-							console.log("Culling is complete");
 							dfd.resolve(archivesId, arguments);
 						});
 					}
@@ -106,7 +106,6 @@ define(["jquery", "underscore", "jqueryhelpers", "storage", "alchemy", "config",
 
             return dfd.promise();
         },
-
 
 		/**
 		 * Sort a sample of bookmarks in Other Bookmarks
