@@ -3,25 +3,13 @@ requirejs.config({
 
     paths: {
         app: '../',
-
         lib: 'lib',
-
         sortapi: '../bookmarksorter'
     },
-
-    shim: {
-        'lib/jquery.total-storage' : ['jquery'],
-        'lib/jquery.mjs.nestedSortable'  : ['jquery-ui'],
-        'lib/jquery.browser' : ['jquery'],
-        'lib/jquery.hotkeys' : ['jquery'],
-        'lib/jquery.whensync' : ['jquery'],
-        'lib/underscore.string' : ['underscore'],
-        'lib/Queue.src' : []
-    }
-
 });
-
-require(['app/popup', 'jquery', 'domReady', ], function(SmartBookmarkSorter, $) {
-        $(".spinner").hide();
-        $("#tabs").show();
+require(['domReady'], function() {
+        require(['jquery', 'app/popup'], function($) {
+            $(".spinner").hide();
+            $("#tabs").show();
+        });
 });

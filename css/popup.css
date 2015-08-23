@@ -148,8 +148,12 @@
 		width: 125%;
 	}
 
-    /* icons */
+	/* spacers */
     .placeholder {
         display: inline-block;
         width: 2%;
     }
+	.placeholderLarge {
+		display: inline-block;
+		width: 10%;
+	}

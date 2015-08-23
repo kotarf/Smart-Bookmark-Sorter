@@ -1,9 +1,9 @@
 Smart-Bookmark-Sorter
 =====================
 
-Automatically sort bookmarks based on their title, category and frequency of use
+Automatically sort bookmarks based on their taxonomy
 
-Version history: 
+Version history (on chrome store)
 
 "0.0.0.1", Initial release
 "0.0.0.2", Fix image names in popup.html
@@ -18,3 +18,4 @@ Version history:
 "0.0.1.1", Imports will temporarily disable automatic sort, visit sort will not move if bookmarking is in progress, clear all interval alarms because duplicates were noticed on Chromium
 "0.0.1.2", New logo, promo images. Switched to MIT license.
 "0.0.1.3", Bug #15
+"0.2.0.2", Major enhancements and remodeling to the architecture of the extension. Sorting is by taxonomy now, and folders are selected through a dynamically created tree. Auto-sort functionality is more efficient, configurable and less intrusive.

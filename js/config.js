@@ -8,7 +8,7 @@ define({
     requestTaxonomyURL : 		"http://access.alchemyapi.com/calls/url/URLGetRankedTaxonomy",
     outputMode : 				"json",
     autoSortMinutes : 			10,
-    autoPrioritizeMinutes :     5,
+    autoPrioritizeMinutes :     10,
     oldBookmarkDaysDefault : 	90,
     bookmarkAlarm : 			"bookmarkAlarm",
     prioritizeAlarm : 			"prioritizeAlarm",
@@ -39,5 +39,6 @@ define({
     taxonomyDelimiter:          "/",
     archivesFolder:             "Archives",
     defaultTaxonomyLevels:      3,
-    defaultCullNumber:          3
+    defaultCullNumber:          3,
+    sampleNumber:               3
 });

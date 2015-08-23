@@ -64,16 +64,17 @@ define(['sortapi', 'storage', 'sharedbrowser', 'chromeinterface', 'config', 'lib
        },
 
        sortIfOld: function(dateThreshold, bookmark, rootIndex, options) {
-           var dateAdded = new Date(bookmark.dateAdded),
+           var dateAdded = bookmark.dateAdded,
                today = new Date(),
                daysBetween = shared.daysBetween(dateAdded, today);
 
            if(daysBetween > dateThreshold) {
-               console.log("Auotmatically sorting", bookmark, dateThreshold);
+               console.log("Automatically sorting", bookmark, daysBetween);
                sortapi.sortBookmarksEx(bookmark, rootIndex, options);
            }
            else {
                // Not sorting because too recent
+               console.log("Not sorting ", bookmark, " because too recent, with a difference of ", daysBetween, " days");
            }
        },
 
@@ -127,7 +128,7 @@ define(['sortapi', 'storage', 'sharedbrowser', 'chromeinterface', 'config', 'lib
            // Get options
            var rootIndex = shared.selectedIndexModifier(storage.getOutputIndex()),
                archivesFolder = storage.getArchivesName(),
-               sortAction = storage.getSortAction(),
+               sortAction = storage.getAutoSortAction(),
                maxLevels = storage.getMaxTaxonomyLevels(),
                cull = false,
                cullThreshold = false;

@@ -1,7 +1,7 @@
 /**
  * Created by kotarf on 5/10/2015.
  */
-define(['jquery', 'chromeinterface', 'config', 'alchemy', 'config', 'jqueryhelpers', 'lib/Queue.src', 'lib/jquery.browser'], function($, chromex, cfg, alchemy, config, jhelpers) {
+define(['jquery', 'chromeinterface', 'config', 'alchemy', 'config', 'jqueryhelpers', 'lib/Queue.src', 'lib/jquery.browser', 'lib/jquery.mjs.nestedSortable'], function($, chromex, cfg, alchemy, config, jhelpers) {
    return {
 
        createFolderIfNotExists : function(title, parentId) {
@@ -487,6 +487,23 @@ define(['jquery', 'chromeinterface', 'config', 'alchemy', 'config', 'jqueryhelpe
        },
 
        /**
+        * Get last N bookmarks in a nested list
+        * @param {object} nested The nested list to get highlighted elements on.
+        * @param {integer} number Maximum number of bookmarks to get
+        */
+       lastNBookmarks: function(nested, number) {
+           var lastNBookmarks = nested.find("li:not([folder]) > div");
+
+           var bookmarks = lastNBookmarks.map(function(index, domElement) {
+               var divElement = $(domElement),
+                   liElement = divElement.closest("li");
+               return { id: liElement.attr("id"), url: divElement.attr("url"), title: divElement.text(), parentId: liElement.attr("parentId") }
+           });
+
+           return $.makeArray(bookmarks).slice(bookmarks.length - 3);
+       },
+
+       /**
         * Create (DOM operation) the associated folder based on the api update
         * @param {string} id The id of the bookmark that was created
         * @param {object} bookmark The created bookmarked
@@ -757,6 +774,12 @@ define(['jquery', 'chromeinterface', 'config', 'alchemy', 'config', 'jqueryhelpe
        openTab: function(url) {
            if($.browser.webkit) {
                chrome.tabs.create({url: url, active: false});
+           }
+       },
+
+       getVersion: function() {
+           if($.browser.webkit) {
+               return chrome.app.getDetails().version;
            }
        }
     }

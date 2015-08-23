@@ -360,6 +360,7 @@ define(["jquery", "underscore", "sortapi", "alchemy", "storage", "jqueryhelpers"
         });
 
         QUnit.test("Cull a tree", function(assert) {
+
            var done1 = assert.async(),
                title = "Tradeweb Careers",
                 folderA = {
@@ -430,48 +431,8 @@ define(["jquery", "underscore", "sortapi", "alchemy", "storage", "jqueryhelpers"
         });
         */
 
-        // Category promise, old, with a valid URL that has a high score
-
-        // Title promise is returned
-
-
-
         // URL with a poor score causes the promise to redo (category)
 
-        // Sort one bookmark
-        /*
-        asyncTest("A single bookmark is sorted", function () {
-            var callback = function () {
-
-                chrome.bookmarks.search("Stack Overflow Test", function (results) {
-
-                    _.each(results, function (element, index) {
-
-                        var result = element,
-                            parentId = result.parentId,
-                            id = result.id;
-                        chrome.bookmarks.remove(id, $.noop);
-                        notEqual(parentId, 1, "parent is not other bookmarks");
-                        ok(parentId, "parent exists");
-                    }, results);
-
-                    start();
-                });
-            };
-
-            var bookmark = {
-                title: "Stack Overflow Test",
-                url: "http://stackoverflow.com"
-            };
-            var deferred = $.Deferred();
-
-            chrome.bookmarks.create(bookmark, function (result) {
-
-                SmartBookmarkSorter.sortBookmark(result, callback, deferred);
-            });
-
-        });
-        */
 
     };
 });

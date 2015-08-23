@@ -1,18 +1,5 @@
-/*
- * jQuery UI Nested Sortable
- * v 2.0 / 29 oct 2012
- * http://mjsarfatti.com/sandbox/nestedSortable
- *
- * Depends on:
- *	 jquery.ui.sortable.js 1.10+
- *
- * Copyright (c) 2010-2013 Manuele J Sarfatti
- * Licensed under the MIT License
- * http://www.opensource.org/licenses/mit-license.php
- */
 (function( factory ) {
 	"use strict";
-
 	var define = window.define;
 
 	if ( typeof define === "function" && define.amd ) {
@@ -20,7 +7,7 @@
 		// AMD. Register as an anonymous module.
 		define([
 			"jquery",
-			//"jquery-ui/sortable"
+			"jquery-ui"
 		], factory );
 	} else {
 
@@ -363,7 +350,7 @@
 						if (o.protectRoot &&
 							!(
 								this.currentItem[0].parentNode === this.element[0] &&
-									// it's a root item
+								// it's a root item
 								itemElement.parentNode !== this.element[0]
 								// it's intersecting a non-root item
 							)
@@ -422,11 +409,11 @@
 
 			if (previousItem != null) {
 				while (
-				previousItem[0].nodeName.toLowerCase() !== "li" ||
-				previousItem[0].className.indexOf(o.disabledClass) !== -1 ||
-				previousItem[0] === this.currentItem[0] ||
-				previousItem[0] === this.helper[0]
-					) {
+					previousItem[0].nodeName.toLowerCase() !== "li" ||
+					previousItem[0].className.indexOf(o.disabledClass) !== -1 ||
+					previousItem[0] === this.currentItem[0] ||
+					previousItem[0] === this.helper[0]
+				) {
 					if (previousItem[0].previousSibling) {
 						previousItem = $(previousItem[0].previousSibling);
 					} else {
@@ -449,11 +436,11 @@
 
 			if (nextItem != null) {
 				while (
-				nextItem[0].nodeName.toLowerCase() !== "li" ||
-				nextItem[0].className.indexOf(o.disabledClass) !== -1 ||
-				nextItem[0] === this.currentItem[0] ||
-				nextItem[0] === this.helper[0]
-					) {
+					nextItem[0].nodeName.toLowerCase() !== "li" ||
+					nextItem[0].className.indexOf(o.disabledClass) !== -1 ||
+					nextItem[0] === this.currentItem[0] ||
+					nextItem[0] === this.helper[0]
+				) {
 					if (nextItem[0].nextSibling) {
 						nextItem = $(nextItem[0].nextSibling);
 					} else {
@@ -483,16 +470,16 @@
 
 				parentItem.after(this.placeholder[0]);
 				helperIsNotSibling = !parentItem
-					.children(o.listItem)
-					.children("li:visible:not(.ui-sortable-helper)")
-					.length;
+											.children(o.listItem)
+											.children("li:visible:not(.ui-sortable-helper)")
+											.length;
 				if (o.isTree && helperIsNotSibling) {
 					parentItem
 						.removeClass(this.options.branchClass + " " + this.options.expandedClass)
 						.addClass(this.options.leafClass);
 				}
-				if(typeof parentItem !== 'undefined')
-					this._clearEmpty(parentItem[0]);
+                if(typeof parentItem !== 'undefined')
+				    this._clearEmpty(parentItem[0]);
 				this._trigger("change", event, this._uiHash());
 				// mjs - if the item is below a sibling and is moved to the right,
 				// make it a child of that sibling
@@ -536,8 +523,8 @@
 					// mjs - otherwise, add it to the bottom of the list.
 					previousItem.children(o.listType)[0].appendChild(this.placeholder[0]);
 				}
-				if(typeof parentItem !== 'undefined')
-					this._clearEmpty(parentItem[0]);
+                if(typeof parentItem !== 'undefined')
+				    this._clearEmpty(parentItem[0]);
 				this._trigger("change", event, this._uiHash());
 			} else {
 				this._isAllowed(parentItem, level, level + childLevels);
@@ -622,9 +609,9 @@
 				);
 			} else {
 				return verticalDirection && (
-						(verticalDirection === "down" && isOverBottomHalf) ||
-						(verticalDirection === "up" && isOverTopHalf)
-					);
+					(verticalDirection === "down" && isOverBottomHalf) ||
+					(verticalDirection === "up" && isOverTopHalf)
+				);
 			}
 
 		},
@@ -772,20 +759,20 @@
 					pid = o.rootID;
 				} else {
 					parentItem = ($(item).parent(o.listType)
-						.parent(o.items)
-						.attr(o.attribute || "id"))
-						.match(o.expression || (/(.+)[-=_](.+)/));
+											.parent(o.items)
+											.attr(o.attribute || "id"))
+											.match(o.expression || (/(.+)[-=_](.+)/));
 					pid = parentItem[2];
 				}
 
 				if (id) {
-					ret.push({
-						"item_id": id[2],
-						"parent_id": pid,
-						"depth": depth,
-						"left": _left,
-						"right": right
-					});
+						ret.push({
+							"item_id": id[2],
+							"parent_id": pid,
+							"depth": depth,
+							"left": _left,
+							"right": right
+						});
 				}
 
 				_left = right + 1;
@@ -856,19 +843,19 @@
 
 		_isAllowed: function(parentItem, level, levels) {
 			var o = this.options,
-			// this takes into account the maxLevels set to the recipient list
+				// this takes into account the maxLevels set to the recipient list
 				maxLevels = this
 					.placeholder
 					.closest(".ui-sortable")
 					.nestedSortable("option", "maxLevels"),
 
-			// Check if the parent has changed to prevent it, when o.disableParentChange is true
+				// Check if the parent has changed to prevent it, when o.disableParentChange is true
 				oldParent = this.currentItem.parent().parent(),
 				disabledByParentchange = o.disableParentChange && (
-						//From somewhere to somewhere else, except the root
-						typeof parentItem !== 'undefined' && !oldParent.is(parentItem) ||
-						typeof parentItem === 'undefined' && oldParent.is("li")	//From somewhere to the root
-					);
+					//From somewhere to somewhere else, except the root
+					typeof parentItem !== 'undefined' && !oldParent.is(parentItem) ||
+					typeof parentItem === 'undefined' && oldParent.is("li")	//From somewhere to the root
+				);
 			// mjs - is the root protected?
 			// mjs - are we nesting too deep?
 			if (

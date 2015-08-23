@@ -1,5 +1,4 @@
-define(["jquery", "sortapi", "storage", "autosort", "alchemy", "sharedbrowser", "lib/underscore.string", "jquery-ui.min",
-    "lib/jquery.mjs.nestedSortable", "lib/jquery.hotkeys", ], function ($, sortapi, storage, autosort, alchemy, shared, s) {
+define([ "jquery", "sortapi", "storage", "autosort", "alchemy", "sharedbrowser", "lib/underscore.string", "config", "jquery-ui", "lib/jquery.mjs.nestedSortable", "lib/jquery.hotkeys" ], function ($, sortapi, storage, autosort, alchemy, shared, s, config) {
     $(document).tooltip();
 
     $("#tabs").tabs({heightStyle: "content", hide: 'fade', show: 'fade'});
@@ -125,7 +124,6 @@ define(["jquery", "sortapi", "storage", "autosort", "alchemy", "sharedbrowser", 
     });
 
     rootBookmarks.forEach(function(value) {
-        console.log(value);
         $('<option/>', {
             text: value
         }).appendTo(selectMenu);
@@ -143,15 +141,33 @@ define(["jquery", "sortapi", "storage", "autosort", "alchemy", "sharedbrowser", 
         // Check if a sort is in progress
         if (!storage.getIsOnManualSorting()) {
             // Sort a sample of bookmarks
-            //sortapi.sortSample();
+            var rootIndex = shared.selectedIndexModifier(config.otherBookmarksIndex),
+                archivesFolder = storage.getArchivesName(),
+                sortAction = false,
+                maxLevels = config.defaultTaxonomyLevels,
+                cull = false;
 
-            shared.cullTree("2306", 3).always(function() {
-                console.log("Done culling");
-            });
+            var options = {archivesFolder: archivesFolder, sortAction: sortAction, maxLevels: maxLevels, cull:cull};
 
+            var lastThreeBookmarks = shared.lastNBookmarks(bookmarks, 3);
+
+            if(_.isEmpty(lastThreeBookmarks)) {
+                $("<div>No available bookmarks! Please add some bookmarks before attempting to sort.</div>").dialog({
+                    title: "No available bookmarks",
+                    modal: true,
+                    draggable: false
+                });
+            }
+            else {
+                sortapi.sortBookmarksEx(lastThreeBookmarks, rootIndex, options);
+            }
         }
         else {
-            console.log("!!!!Sort is in progress");
+            $("<div>A sort is already in progress! Please wait for it to complete.</div>").dialog({
+                title: "Sort already in progress",
+                modal: true,
+                draggable: false
+            });
         }
     });
 
@@ -251,7 +267,7 @@ define(["jquery", "sortapi", "storage", "autosort", "alchemy", "sharedbrowser", 
                     // Sort selected bookmarks
                     var selectedBookmarks = shared.selectedBookmarks(bookmarks);
 
-                    if(selectedBookmarks.length === 0) {
+                    if(_.isEmpty(selectedBookmarks)) {
                         $(this).dialog("close");
                         $("<div>No bookmarks selected! Please select bookmarks in the tree below before attempting to sort.</div>").dialog({
                             title: "No bookmarks selected",
@@ -296,10 +312,22 @@ define(["jquery", "sortapi", "storage", "autosort", "alchemy", "sharedbrowser", 
                     }).progress(function(index, id) {
                         // Update progress bar
                         $("#progressbar_sorting").progressbar("option", "value", index);
+                    }).fail(function() {
+                        /// TODO fix this to be specific
+                        $("<div>Error during sorting. API key may be at max use for the day, or internet connection / firewall may have caused requests to fail.</div>").dialog({
+                            title: "Error during sorting",
+                            modal: true,
+                            draggable: false
+                        });
                     });
                 }
                 else {
                     // Sort is in progress
+                    $("<div>A sort is already in progress! Please wait for it to complete.</div>").dialog({
+                        title: "Sort already in progress",
+                        modal: true,
+                        draggable: false
+                    });
                 }
                 $(this).dialog("close");
             },
@@ -466,6 +494,23 @@ define(["jquery", "sortapi", "storage", "autosort", "alchemy", "sharedbrowser", 
         max: 120
     }).spinner( "value", storage.getAutosortMinutes() );
 
+    $("#button_autosort_action").button().click(function() {
+        var isChecked = $(this).is(':checked');
+        if(isChecked) {
+            $(this).button( "option", "label", "Move" );
+
+        } else {
+            $(this).button( "option", "label", "Create" );
+        }
+        storage.setAutoSortAction(isChecked);
+    });
+
+    var autoSortAction = storage.getAutoSortAction();
+
+    if(autoSortAction) {
+        $("#button_autosort_action").prop('checked', true).button( "option", "label", "Move" ).button("refresh");
+    }
+
     $( "#radio_priorityOutputDest" ).buttonset();
 
     var priorityDest = storage.getAutosortPrioritizeDirectory();
@@ -481,16 +526,55 @@ define(["jquery", "sortapi", "storage", "autosort", "alchemy", "sharedbrowser", 
     $( "#radio_priorityOutputDest" ).buttonset('refresh');
 
     $('#radio_priorityOther').button().click(function() {
-        var isChecked = $("#radio_priorityOther").is(':checked');
         storage.setAutosortPrioritizeDirectory(2);
     });
     $('#radio_priorityBar').button().click(function() {
-        var isChecked = $("#radio_priorityBar").is(':checked');
         storage.setAutosortPrioritizeDirectory(1);
     });
     $('#radio_priorityMobile').button().click(function() {
-        var isChecked = $("#radio_priorityMobile").is(':checked');
         storage.setAutosortPrioritizeDirectory(3);
     });
 
+    $("#version").text(shared.getVersion());
+
+    $("#link_jquery").click(function(e) {
+        e.preventDefault();
+        shared.openTab($(this).attr("href"));
+    });
+    $("#link_jqueryui").click(function(e) {
+        e.preventDefault();
+        shared.openTab($(this).attr("href"));
+    });
+    $("#link_alchemyapi").click(function(e) {
+        e.preventDefault();
+        shared.openTab($(this).attr("href"));
+    });
+    $("#link_whensync").click(function(e) {
+        e.preventDefault();
+        shared.openTab($(this).attr("href"));
+    });
+    $("#link_totalstorage").click(function(e) {
+        e.preventDefault();
+        shared.openTab($(this).attr("href"));
+    });
+    $("#link_jqueryurlparser").click(function(e) {
+        e.preventDefault();
+        shared.openTab($(this).attr("href"));
+    });
+    $("#link_minimal").click(function(e) {
+        e.preventDefault();
+        shared.openTab($(this).attr("href"));
+    });
+    $("#link_booglemarks").click(function(e) {
+        e.preventDefault();
+        shared.openTab($(this).attr("href"));
+    });
+    $("#link_supersorter").click(function(e) {
+        e.preventDefault();
+        shared.openTab($(this).attr("href"));
+    });
+    $("#link_mygithub").click(function(e) {
+        e.preventDefault();
+        shared.openTab($(this).attr("href"));
+    });
 });
