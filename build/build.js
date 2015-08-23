@@ -21,5 +21,5 @@
             ]
         }
     ],
-    fileExclusionRegExp: /docs|build|.idea|.git|.gitignore|Chrome_Export_Bookmarks.|tests.js|require_tests.js|qunit/
+    fileExclusionRegExp: /docs|build|.idea|.git|.gitignore|Chrome_Export_Bookmarks.png|tests.js|require_tests.js|qunit/
 })
