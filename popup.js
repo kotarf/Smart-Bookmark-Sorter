@@ -577,4 +577,7 @@ define([ "jquery", "sortapi", "storage", "autosort", "alchemy", "sharedbrowser",
         e.preventDefault();
         shared.openTab($(this).attr("href"));
     });
+
+    // Refresh the background page
+    shared.getBackgroundService();
 });
