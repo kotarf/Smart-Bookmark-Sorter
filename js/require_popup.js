@@ -7,9 +7,9 @@ requirejs.config({
         sortapi: '../bookmarksorter'
     },
 });
-require(['domReady'], function() {
-        require(['jquery', 'app/popup'], function($) {
-            $(".spinner").hide();
-            $("#tabs").show();
-        });
+require(['domReady!'], function() {
+    require(['jquery', 'app/popup'], function($) {
+        $(".spinner").hide();
+        $("#tabs").show();
+    });
 });
