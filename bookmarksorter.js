@@ -62,7 +62,6 @@ define(["jquery", "underscore", "jqueryhelpers", "storage", "alchemy", "config",
 				var defFunctors = _.map(bookmarks, function (bookmark) {
 					return function () {
 						var deferred = arguments[0];
-						// rootId = rootId // why is that a problem?
 
 						// Resolve deferred in the future.
 						me.sortBookmarkEx(bookmark, archivesId, options).done(function(id, parentId) {
@@ -105,15 +104,6 @@ define(["jquery", "underscore", "jqueryhelpers", "storage", "alchemy", "config",
 			});
 
             return dfd.promise();
-        },
-
-		/**
-		 * Sort a sample of bookmarks in Other Bookmarks
-		 * @config {int} [sampleNumber] The number of bookmarks to sort in this sample
-		 */
-		sortSample : function ()
-		{
-			this.sortToplevelBookmarks(config.sampleNumber);
-		},
+        }
 	};
 });

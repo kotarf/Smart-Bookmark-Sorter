@@ -116,7 +116,7 @@ define(['sortapi', 'storage', 'sharedbrowser', 'chromeinterface', 'config', 'lib
                }
 
                return bookmarks;
-           }
+           };
 
            // Get the local counters
            var autosortOther = storage.getAutosortOtherBookmarks(),

@@ -1,4 +1,5 @@
-define([ "jquery", "sortapi", "storage", "autosort", "alchemy", "sharedbrowser", "lib/underscore.string", "config", "jquery-ui", "lib/jquery.mjs.nestedSortable", "lib/jquery.hotkeys" ], function ($, sortapi, storage, autosort, alchemy, shared, s, config) {
+define([ "jquery", "sortapi", "storage", "autosort", "alchemy", "sharedbrowser",
+    "lib/underscore.string", "config", "underscore", "jquery-ui", "lib/jquery.mjs.nestedSortable", "lib/jquery.hotkeys" ], function ($, sortapi, storage, autosort, alchemy, shared, s, config, _) {
     $(document).tooltip();
 
     $("#tabs").tabs({heightStyle: "content", hide: 'fade', show: 'fade'});
@@ -103,7 +104,7 @@ define([ "jquery", "sortapi", "storage", "autosort", "alchemy", "sharedbrowser",
     });
 
     $("#button_continue").button().click(function () {
-        $("#tabs").tabs({active: 2})
+        $("#tabs").tabs({active: 2});
     });
 
     if ($.totalStorage('bookmarksorter_backup') === null) {

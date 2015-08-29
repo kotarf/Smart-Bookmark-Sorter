@@ -1,7 +1,7 @@
 /**
  * Created by kotarf on 5/10/2015.
  */
-define(['jquery', 'chromeinterface', 'config', 'alchemy', 'config', 'jqueryhelpers', 'lib/Queue.src', 'lib/jquery.browser', 'lib/jquery.mjs.nestedSortable'], function($, chromex, cfg, alchemy, config, jhelpers) {
+define(['jquery', 'chromeinterface', 'config', 'alchemy', 'config', 'jqueryhelpers', 'underscore', 'lib/Queue.src', 'lib/jquery.browser', 'lib/jquery.mjs.nestedSortable'], function($, chromex, cfg, alchemy, config, jhelpers, _) {
    return {
 
        createFolderIfNotExists : function(title, parentId) {
@@ -148,7 +148,7 @@ define(['jquery', 'chromeinterface', 'config', 'alchemy', 'config', 'jqueryhelpe
                    parentId: destination,
                    title: title,
                    url: url
-               }
+               };
 
                chromex.createBookmark(bookmark).always(function(result) {
                    dfd.resolve(result);
@@ -181,10 +181,17 @@ define(['jquery', 'chromeinterface', 'config', 'alchemy', 'config', 'jqueryhelpe
                me = this;
 
            if($.browser.webkit) {
-               chromex.findBookmark(item.title, item.url, destination).done(function(id, parentId) {
-                   me.removeBookmark(item.id).always(function() {
+               chromex.findBookmark(item.title, item.url, destination).done(function(bookmark) {
+                   var id = bookmark.id,
+                       parentId = bookmark.parentId;
+
+                   if(item.parentId !== parentId) {
+                       me.removeBookmark(item.id).always(function() {
+                           dfd.resolve(id, parentId);
+                       });
+                   } else {
                        dfd.resolve(id, parentId);
-                   });
+                   }
                }).fail(function() {
                    me.moveBookmark(item.id, destination).done(function(result) {
                        dfd.resolve(result.id, result.parentId);
@@ -298,8 +305,7 @@ define(['jquery', 'chromeinterface', 'config', 'alchemy', 'config', 'jqueryhelpe
                        parent = d.parent;
 
                    // Do <div> processing //
-                   var isFolder = item.url === undefined ? true : false,
-                       uri = !isFolder ? 'url(chrome://favicon/' + item.url + ')' : "url(chrome-extension://" + chrome.runtime.id + '/images/logo_16x16.png' + ')';
+                   var isFolder = me.isFolder(item);
 
                    // If bookmark
                    if(!isFolder)

@@ -33,11 +33,11 @@ define(['underscore', 'jqueryhelpers', 'config'], function(_, jhelpers, config) 
     var getter = function(key, def) {
         var value = jhelpers.jQueryStorageGetValue(key);
         return _.isUndefined(value) || _.isNull(value) ? def : value;
-    }
+    };
 
     var setter = function(key, value) {
         jhelpers.jQueryStorageSetValue(key, value);
-    }
+    };
 
     var module = {};
 

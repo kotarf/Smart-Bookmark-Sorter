@@ -1,3 +1,4 @@
 .idea/vcs.xml
 .idea/
 build/dist/
+.jshintrc
