@@ -21,4 +21,5 @@ Version history (on chrome store)
 "0.2.0.2", Major enhancements and remodeling to the architecture of the extension. Sorting is by taxonomy now, and folders are selected through a dynamically created tree. Auto-sort functionality is more efficient, configurable and less intrusive.
 "0.2.0.3", onInstalled initialization for event page
 "0.2.0.4", use domReady correctly
-"0.2.0.5", lower bad score threshold and do not delete bookmarks when set to move and they already exist in output
+"0.2.0.5", lower bad score threshold and do not delete bookmarks when set to move and they already exist in output\
+"0.2.0.6", cull option button was not sticking

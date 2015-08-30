@@ -224,7 +224,7 @@ define([ "jquery", "sortapi", "storage", "autosort", "alchemy", "sharedbrowser",
         } else {
             storage.setIsOnCullBookmarks(false);
         }
-    }).prop('checked', storage.getIsOnCullBookmarks());
+    }).prop('checked', storage.getIsOnCullBookmarks()).button('refresh');
 
     $( "#radio_sortAction" ).buttonset();
 
