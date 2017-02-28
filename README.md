@@ -23,3 +23,4 @@ Version history (on chrome store)
 "0.2.0.4", use domReady correctly
 "0.2.0.5", lower bad score threshold and do not delete bookmarks when set to move and they already exist in output\
 "0.2.0.6", cull option button was not sticking
+"0.2.0.7", move to HTTPS endpoint

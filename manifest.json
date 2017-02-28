@@ -1,6 +1,6 @@
 {
   "name": "Smart Bookmark Sorter",
-  "version": "0.2.0.6",
+  "version": "0.2.0.7",
   "manifest_version": 2,
   "description": "Sort bookmarks based on their taxonomy",
   "icons": { "128": "images/logo_128x128.png", "48" : "images/logo_48x48.png", "16" : "images/logo_16x16.png"},
@@ -18,6 +18,6 @@
 	"alarms",
 	"background",
     "chrome://favicon/",
-	"http://access.alchemyapi.com/"
+	"https://access.alchemyapi.com/"
   ]
 }

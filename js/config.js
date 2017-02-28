@@ -3,9 +3,9 @@
  */
 define({
     /** SmartBookmarkSorter configuration properties. These are all constants. */
-    requestCategoryURL : 		"http://access.alchemyapi.com/calls/url/URLGetCategory",
-    requestTitleURL : 			"http://access.alchemyapi.com/calls/url/URLGetTitle",
-    requestTaxonomyURL : 		"http://access.alchemyapi.com/calls/url/URLGetRankedTaxonomy",
+    requestCategoryURL : 		"https://access.alchemyapi.com/calls/url/URLGetCategory",
+    requestTitleURL : 			"https://access.alchemyapi.com/calls/url/URLGetTitle",
+    requestTaxonomyURL : 		"https://access.alchemyapi.com/calls/url/URLGetRankedTaxonomy",
     outputMode : 				"json",
     autoSortMinutes : 			10,
     autoPrioritizeMinutes :     10,
