@@ -3,6 +3,9 @@ Smart-Bookmark-Sorter
 
 Automatically sort bookmarks based on their taxonomy
 
+Update 12/2018:
+This extension relied upon AlchemyAPI for taxonomy and categorization results given URLs. AlchemyAPI was purchased by IBM sometime in 2015, and AlchemyAPI itself was officially merged into IBM Watson in April 2017. As of April 2017, it has no longer been possible to register a new and free installation of AlchemyAPI. This extension cannot be run without such a license, and so it's academic at the current time. I'm looking into moving to a different provider for categorization & taxonomy results as there are a number of new ones these days (that also appear to offer a free version).
+
 Version history (on chrome store)
 
 "0.0.0.1", Initial release
